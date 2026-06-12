@@ -403,6 +403,7 @@ body{
     <span class="month-label" id="payMonth"></span>
     <button onclick="nextPayMonth()">▶</button>
     <span style="flex:1"></span>
+    <button class="btn btn-outline btn-sm" onclick="exportCsv()" style="font-size:12px;">📥 导出</button>
     <button class="btn btn-primary btn-sm" onclick="openModal('payment')">+ 记录</button>
   </div>
   <div class="summary-row">
@@ -1032,6 +1033,38 @@ function renderPayments(){
 }
 function prevPayMonth(){if(payMonth===0){payYear--;payMonth=11;}else{payMonth--;}renderPayments();}
 function nextPayMonth(){if(payMonth===11){payYear++;payMonth=0;}else{payMonth++;}renderPayments();}
+
+// ====== CSV 导出 ======
+function exportCsv(){
+  const list=data.payments.filter(p=>{
+    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth;
+  }).sort((a,b)=>a.date.localeCompare(b.date));
+  if(list.length===0){showToast('本月无数据可导出');return;}
+  // BOM for Excel UTF-8
+  let csv='﻿';
+  csv+=`排课宝账单 - ${fmtMonth(payYear,payMonth)}\n\n`;
+  csv+='日期,学生,类型,金额,方式,备注\n';
+  list.forEach(p=>{
+    const type=p.type==='package'?`套餐(${p.packageLessons||0}节)`:'单次';
+    csv+=`${p.date},${p.studentName},${type},${p.amount},${p.method},"${(p.notes||'').replace(/"/g,'""')}"\n`;
+  });
+  csv+='\n';
+  const total=list.reduce((s,p)=>s+(p.type==='package'?0:p.amount),0);
+  const pkgTotal=list.reduce((s,p)=>s+(p.type==='package'?p.amount:0),0);
+  const singleCount=list.filter(p=>p.type!=='package').length;
+  const pkgCount=list.filter(p=>p.type==='package').length;
+  csv+=`合计,,${list.length}笔,¥${total+pkgTotal},,\n`;
+  if(singleCount>0) csv+=`其中单次收费,,${singleCount}笔,¥${total},,\n`;
+  if(pkgCount>0) csv+=`其中课时套餐,,${pkgCount}笔,¥${pkgTotal},,\n`;
+  // 统计课次
+  const monthLessons=data.lessons.filter(l=>{const ld=new Date(l.date);return ld.getFullYear()===payYear&&ld.getMonth()===payMonth&&l.status==='done';});
+  csv+=`\n本月消课,${monthLessons.length}节,,,\n`;
+
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`排课宝账单_${payYear}${String(payMonth+1).padStart(2,'0')}.csv`;
+  a.click();URL.revokeObjectURL(url);showToast('账单已下载 ✓');
+}
 
 // ====== 头像颜色 ======
 const AVATAR_COLORS=['#3B82F6','#EF4444','#10B981','#F59E0B','#8B5CF6','#EC4899','#06B6D4','#F97316','#6366F1','#14B8A6'];
