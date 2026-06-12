@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>预约课程 — 排课宝</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0D9488;--teal-dark:#0F766E;--teal-light:#CCFBF1;--teal-bg:#F0FDFA;
+  --amber:#F59E0B;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-300:#D1D5DB;
+  --gray-400:#9CA3AF;--gray-500:#6B7280;--gray-600:#4B5563;--gray-700:#374151;
+  --gray-800:#1F2937;--gray-900:#111827;
+  --red:#EF4444;--green:#10B981;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --safe-bottom:env(safe-area-inset-bottom,16px);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--gray-800);line-height:1.6;background:#f5f5f5;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+}
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:#fff;position:relative;}
+
+/* Header */
+.header{
+  padding:20px 20px 16px;text-align:center;
+  border-bottom:1px solid var(--gray-100);position:sticky;top:0;background:#fff;z-index:10;
+}
+.header-avatar{
+  width:56px;height:56px;border-radius:50%;background:var(--teal-light);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin:0 auto 8px;
+}
+.header h1{font-size:17px;font-weight:700;}
+.header .sub{font-size:13px;color:var(--gray-500);margin-top:2px;}
+
+/* Page content */
+.page{padding:16px 20px;}
+
+/* Week strip */
+.week-strip{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;scrollbar-width:none;}
+.week-strip::-webkit-scrollbar{display:none;}
+.week-day{
+  flex-shrink:0;width:calc((100% - 24px) / 7);min-width:44px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 2px;border-radius:12px;cursor:pointer;border:2px solid transparent;
+  transition:all .15s;gap:2px;
+}
+.week-day:active{transform:scale(.95);}
+.week-day .wd-label{font-size:10px;color:var(--gray-400);font-weight:500;}
+.week-day .wd-num{font-size:16px;font-weight:700;color:var(--gray-700);line-height:1;}
+.week-day .wd-dot{width:4px;height:4px;border-radius:50%;margin-top:2px;}
+.week-day.today{border-color:var(--teal);background:var(--teal-bg);}
+.week-day.today .wd-label{color:var(--teal);}
+.week-day.today .wd-num{color:var(--teal);}
+.week-day.selected{background:var(--teal);border-color:var(--teal);}
+.week-day.selected .wd-label{color:var(--teal-light);}
+.week-day.selected .wd-num{color:#fff;}
+.week-day.has .wd-dot{background:var(--teal);}
+.week-day.selected .wd-dot{background:#fff;}
+
+/* Section */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.section-title{font-size:15px;font-weight:700;}
+.section-sub{font-size:12px;color:var(--gray-400);}
+
+/* Slot cards */
+.slot-card{
+  display:flex;align-items:center;padding:14px 16px;
+  background:var(--gray-50);border-radius:var(--radius-sm);
+  margin-bottom:10px;gap:12px;cursor:default;
+}
+.slot-card .slot-time{text-align:center;flex-shrink:0;}
+.slot-card .slot-time .st{font-size:18px;font-weight:800;letter-spacing:-.5px;}
+.slot-card .slot-time .se{font-size:11px;color:var(--gray-500);}
+.slot-card .slot-info{flex:1;min-width:0;}
+.slot-card .slot-info .si-title{font-size:14px;font-weight:600;}
+.slot-card .slot-info .si-meta{font-size:12px;color:var(--gray-500);margin-top:2px;}
+.slot-card.booked{opacity:.6;background:var(--gray-50);}
+.slot-card.booked .slot-time .st{color:var(--gray-400);}
+.slot-card.open{border-left:3px solid var(--teal);background:var(--teal-bg);cursor:pointer;}
+.slot-card.open:active{background:var(--teal-light);}
+
+/* Button */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:4px;
+  padding:8px 20px;border-radius:20px;font-size:13px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;white-space:nowrap;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:active{background:var(--teal-dark);}
+.btn-outline{background:#fff;color:var(--gray-600);border:1px solid var(--gray-300);}
+.btn-sm{padding:6px 14px;font-size:12px;}
+.btn-block{width:100%;padding:12px;font-size:14px;border-radius:var(--radius-sm);}
+
+/* Badge */
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;display:inline-block;}
+.badge-avail{background:var(--teal-light);color:var(--teal-dark);}
+.badge-booked{background:var(--gray-200);color:var(--gray-500);}
+.badge-mine{background:#FEF3C7;color:#92400E;}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(--gray-400);}
+.empty .empty-icon{font-size:40px;margin-bottom:8px;}
+.empty p{font-size:14px;}
+
+/* Modal */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;
+  align-items:flex-end;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+.modal{
+  background:#fff;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;
+  border-radius:16px 16px 0 0;padding:24px 20px calc(20px + var(--safe-bottom));
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:20px;text-align:center;}
+
+/* Form */
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:5px;}
+.form-input{
+  width:100%;padding:11px 14px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);
+  font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;
+  background:#fff;-webkit-appearance:none;
+}
+.form-input:focus{border-color:var(--teal);}
+
+/* Toast */
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:200;
+  background:var(--gray-900);color:#fff;padding:10px 24px;border-radius:20px;
+  font-size:14px;animation:fadeIn .3s ease;pointer-events:none;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Confirm card */
+.confirm-card{
+  background:var(--teal-bg);border-radius:var(--radius);padding:16px;margin-bottom:16px;text-align:center;
+}
+.confirm-card .cc-icon{font-size:36px;margin-bottom:8px;}
+.confirm-card .cc-title{font-size:16px;font-weight:700;color:var(--teal-dark);margin-bottom:4px;}
+.confirm-card .cc-meta{font-size:13px;color:var(--gray-500);}
+
+/* My bookings */
+.my-booking{
+  background:var(--gray-50);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;
+}
+.my-booking .mb-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.my-booking .mb-date{font-size:14px;font-weight:600;}
+.my-booking .mb-status{font-size:11px;}
+.my-booking .mb-detail{font-size:12px;color:var(--gray-500);}
+
+/* Tabs */
+.tabs{display:flex;gap:0;margin-bottom:20px;border-radius:var(--radius-sm);background:var(--gray-100);padding:3px;}
+.tab-btn{
+  flex:1;padding:8px;border:none;background:none;border-radius:8px;font-size:14px;
+  font-weight:600;cursor:pointer;color:var(--gray-500);transition:all .15s;
+}
+.tab-btn.active{background:#fff;color:var(--gray-800);box-shadow:var(--shadow);}
+
+@media(min-width:480px){
+  .app{border-left:1px solid var(--gray-200);border-right:1px solid var(--gray-200);}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- Header -->
+<header class="header">
+  <div class="header-avatar" id="teacherAvatar">📅</div>
+  <h1 id="teacherName">教师课程预约</h1>
+  <div class="sub" id="teacherSubject">加载中…</div>
+</header>
+
+<!-- Tabs -->
+<div class="page">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('slots')">可预约时段</button>
+    <button class="tab-btn" onclick="switchTab('mine')">我的预约</button>
+  </div>
+
+  <!-- Week strip -->
+  <div style="display:flex;align-items:center;gap:2px;margin-bottom:10px;">
+    <button onclick="shiftWeek(-7)" style="flex-shrink:0;width:28px;height:56px;border:none;background:none;font-size:14px;color:var(--gray-400);cursor:pointer;border-radius:10px;">◀</button>
+    <div class="week-strip" id="weekStrip" style="margin-bottom:0;"></div>
+    <button onclick="shiftWeek(7)" style="flex-shrink:0;width:28px;height:56px;border:none;background:none;font-size:14px;color:var(--gray-400);cursor:pointer;border-radius:10px;">▶</button>
+  </div>
+
+  <!-- Slots list -->
+  <div class="section-header" style="margin-top:4px;">
+    <span class="section-title" id="slotDateLabel">选择日期</span>
+    <span class="section-sub" id="slotCount"></span>
+  </div>
+  <div id="slotsContainer"></div>
+  <div id="myBookingsContainer" style="display:none;"></div>
+
+  <!-- Data expired notice -->
+  <div id="dataExpired" style="display:none;text-align:center;padding:40px 20px;">
+    <div style="font-size:48px;margin-bottom:12px;">🔗</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">暂无预约数据</div>
+    <div style="font-size:14px;color:var(--gray-500);">请联系老师获取最新预约链接</div>
+  </div>
+</div>
+
+<!-- 预约表单弹窗 -->
+<div class="modal-overlay" id="bookModal">
+  <div class="modal">
+    <div class="modal-title">📅 确认预约</div>
+    <div id="bookSlotPreview" style="margin-bottom:16px;"></div>
+    <div class="form-group">
+      <label class="form-label">您的姓名 *</label>
+      <input class="form-input" id="bookName" placeholder="家长姓名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">手机号码 *</label>
+      <input class="form-input" id="bookPhone" placeholder="方便老师联系您" type="tel">
+    </div>
+    <div class="form-group">
+      <label class="form-label">孩子姓名</label>
+      <input class="form-input" id="bookChild" placeholder="上课的孩子姓名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">备注</label>
+      <input class="form-input" id="bookNotes" placeholder="如有特殊需求可注明">
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-block" onclick="closeBookModal()">取消</button>
+      <button class="btn btn-primary btn-block" onclick="confirmBook()">确认预约</button>
+    </div>
+  </div>
+</div>
+
+<!-- 确认成功弹窗 -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div class="confirm-card">
+      <div class="cc-icon">✅</div>
+      <div class="cc-title">预约成功！</div>
+      <div class="cc-meta" id="successMsg"></div>
+    </div>
+    <p style="font-size:13px;color:var(--gray-500);text-align:center;margin-bottom:16px;">
+      请截图保存，或联系老师确认上课时间
+    </p>
+    <button class="btn btn-primary btn-block" onclick="closeSuccessModal()">知道了</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+</div><!-- /app -->
+
+<script>
+// ========== URL 数据解析 ==========
+let teacherData = null;
+
+function parseHash(){
+  try{
+    const hash = location.hash.slice(1); // remove #
+    if(!hash || !hash.startsWith('data=')) return null;
+    const b64 = hash.slice(5);
+    const json = decodeURIComponent(escape(atob(b64)));
+    return JSON.parse(json);
+  }catch(e){
+    return null;
+  }
+}
+
+// ========== 数据模型 ==========
+// teacherData: {
+//   teacherName, teacherSubject, teacherPhone,
+//   openSlots: [{date,time,duration,fee,subject,payMethod}],
+//   bookedSlots: [{date,time,duration}]
+// }
+
+function fmtDate(d){
+  const dt = new Date(d+'T00:00:00');
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+function today(){ return fmtDate(new Date()); }
+function dayOfWeek(d){ return ['周日','周一','周二','周三','周四','周五','周六'][new Date(d+'T00:00:00').getDay()]; }
+const WD=['日','一','二','三','四','五','六'];
+
+function fmtMoney(n){ return '¥'+Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function calcEnd(time,dur){
+  const [h,m]=time.split(':').map(Number);
+  const t=h*60+m+dur;
+  return `${String(Math.floor(t/60)%24).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`;
+}
+
+// ========== Toast ==========
+let toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block';
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ el.style.display='none'; },2000);
+}
+
+// ========== 读取我的预约 (localStorage) ==========
+function getMyBookings(){
+  try{
+    return JSON.parse(localStorage.getItem('paikebao_parent_bookings')||'[]');
+  }catch(e){ return []; }
+}
+function saveMyBookings(arr){
+  localStorage.setItem('paikebao_parent_bookings', JSON.stringify(arr));
+}
+
+// ========== 日期选择 ==========
+let selectedDate = today();
+let weekStart = null;
+
+function initWeek(){
+  const d = new Date(selectedDate+'T00:00:00');
+  d.setDate(d.getDate() - d.getDay());
+  weekStart = fmtDate(d);
+}
+
+function renderWeekStrip(){
+  if(!weekStart) initWeek();
+  const td = today();
+  const start = new Date(weekStart+'T00:00:00');
+  let html='';
+  for(let i=0;i<7;i++){
+    const d = new Date(start); d.setDate(start.getDate()+i);
+    const ds = fmtDate(d);
+    const cls = [
+      'week-day',
+      ds===td?'today':'',
+      ds===selectedDate?'selected':'',
+      hasSlotOnDate(ds)?'has':''
+    ].filter(Boolean).join(' ');
+    html+=`<div class="${cls}" onclick="selectDate('${ds}')">
+      <span class="wd-label">${WD[d.getDay()]}</span>
+      <span class="wd-num">${d.getDate()}</span>
+      <span class="wd-dot"></span>
+    </div>`;
+  }
+  document.getElementById('weekStrip').innerHTML=html;
+  document.getElementById('slotDateLabel').textContent = selectedDate + ' ' + dayOfWeek(selectedDate);
+}
+
+function hasSlotOnDate(ds){
+  if(!teacherData) return false;
+  const open = teacherData.openSlots.some(s=>s.date===ds);
+  const booked = teacherData.bookedSlots.some(s=>s.date===ds);
+  return open || booked;
+}
+
+function shiftWeek(n){
+  const d=new Date(weekStart+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  weekStart=fmtDate(d);
+  selectedDate=weekStart;
+  renderWeekStrip();
+  renderSlots();
+}
+
+function selectDate(ds){
+  selectedDate = ds;
+  renderWeekStrip();
+  renderSlots();
+}
+
+// ========== 渲染可预约时段 ==========
+function renderSlots(){
+  if(!teacherData){
+    renderWeekStrip();
+    return;
+  }
+  const myBookings = getMyBookings();
+  const openSlots = (teacherData.openSlots||[]).filter(s=>s.date===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
+  const bookedSlots = (teacherData.bookedSlots||[]).filter(s=>s.date===selectedDate);
+  const container = document.getElementById('slotsContainer');
+
+  // check if I booked any of these
+  const myBookedIds = new Set(myBookings.map(b=>b.date+'|'+b.time));
+
+  let html='';
+
+  // Booked slots (already taken by other students)
+  bookedSlots.forEach(s=>{
+    html+=`<div class="slot-card booked">
+      <div class="slot-time"><div class="st">${s.time}</div><div class="se">${calcEnd(s.time,s.duration)}</div></div>
+      <div class="slot-info"><div class="si-title" style="color:var(--gray-500);">已预约</div><div class="si-meta">${s.duration}分钟</div></div>
+      <span class="badge badge-booked">已约</span>
+    </div>`;
+  });
+
+  // Open slots
+  if(openSlots.length===0 && bookedSlots.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>当天暂无可用时段</p></div>`;
+    document.getElementById('slotCount').textContent='';
+    return;
+  }
+
+  openSlots.forEach(s=>{
+    const slotId = s.date+'|'+s.time;
+    const isMine = myBookedIds.has(slotId);
+    html+=`<div class="slot-card open" ${isMine?'style="border-left-color:var(--amber);background:#FFFBEB;"':''} onclick="${isMine?'':'openBookModal(\''+s.date+'\',\''+s.time+'\','+s.duration+','+s.fee+',\''+(s.subject||teacherData.teacherSubject||'').replace(/'/g,"\\'")+'\')'}">
+      <div class="slot-time"><div class="st" style="color:${isMine?'var(--amber-dark)':'var(--teal-dark)'};">${s.time}</div><div class="se">${calcEnd(s.time,s.duration)}</div></div>
+      <div class="slot-info"><div class="si-title">${s.subject||teacherData.teacherSubject||'课程'} · ${s.duration}分钟</div><div class="si-meta">${fmtMoney(s.fee)} · ${s.payMethod||''}</div></div>
+      ${isMine?`<span class="badge badge-mine">我已约</span>`:`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openBookModal('${s.date}','${s.time}',${s.duration},${s.fee},'${(s.subject||teacherData.teacherSubject||'').replace(/'/g,"\\'")}')">预约</button>`}
+    </div>`;
+  });
+
+  container.innerHTML=html;
+  document.getElementById('slotCount').textContent=`${openSlots.length}个可约`;
+}
+
+// ========== 渲染我的预约 ==========
+function renderMyBookings(){
+  const container = document.getElementById('myBookingsContainer');
+  const bookings = getMyBookings().sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
+  if(bookings.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><p>暂无预约记录</p></div>`;
+    return;
+  }
+  container.innerHTML=bookings.map(b=>`
+    <div class="my-booking">
+      <div class="mb-header">
+        <span class="mb-date">${b.date} ${dayOfWeek(b.date)} ${b.time}-${calcEnd(b.time,b.duration)}</span>
+        <span class="mb-status" style="color:${b.status==='confirmed'?'var(--green)':'var(--amber)'};">${b.status==='confirmed'?'已确认':'待确认'}</span>
+      </div>
+      <div class="mb-detail">${b.subject||''} · ${b.duration}分钟 · ${fmtMoney(b.fee)}${b.childName?' · 孩子：'+b.childName:''}</div>
+      <div style="margin-top:6px;">
+        <button class="btn btn-outline btn-sm" onclick="cancelBooking('${b.date}','${b.time}')" style="font-size:11px;">取消预约</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ========== Tab 切换 ==========
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', false));
+  if(tab==='slots'){
+    document.querySelector('.tab-btn:first-child').classList.add('active');
+    document.getElementById('slotsContainer').style.display='block';
+    document.getElementById('myBookingsContainer').style.display='none';
+    document.getElementById('slotDateLabel').style.display='';
+    document.getElementById('slotCount').style.display='';
+    renderSlots();
+  }else{
+    document.querySelector('.tab-btn:last-child').classList.add('active');
+    document.getElementById('slotsContainer').style.display='none';
+    document.getElementById('myBookingsContainer').style.display='block';
+    document.getElementById('slotDateLabel').style.display='none';
+    document.getElementById('slotCount').style.display='none';
+    renderMyBookings();
+  }
+}
+
+// ========== 预约弹窗 ==========
+let bookingSlot = null;
+
+function openBookModal(date,time,duration,fee,subject){
+  bookingSlot = { date, time, duration, fee, subject };
+  document.getElementById('bookSlotPreview').innerHTML=`
+    <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:12px 14px;">
+      <div style="font-size:14px;font-weight:600;">${date} ${dayOfWeek(date)}</div>
+      <div style="font-size:13px;color:var(--gray-600);margin-top:2px;">${time} - ${calcEnd(time,duration)} · ${duration}分钟 · ${fmtMoney(fee)}</div>
+      <div style="font-size:12px;color:var(--gray-500);">${subject||''} · ${teacherData.teacherName||''}</div>
+    </div>`;
+  document.getElementById('bookName').value='';
+  document.getElementById('bookPhone').value='';
+  document.getElementById('bookChild').value='';
+  document.getElementById('bookNotes').value='';
+  document.getElementById('bookModal').classList.add('show');
+}
+function closeBookModal(){
+  document.getElementById('bookModal').classList.remove('show');
+  bookingSlot = null;
+}
+
+function confirmBook(){
+  const name = document.getElementById('bookName').value.trim();
+  const phone = document.getElementById('bookPhone').value.trim();
+  if(!name){ showToast('请输入您的姓名'); return; }
+  if(!phone){ showToast('请输入手机号码'); return; }
+  if(!/^\d{11}$/.test(phone)){ showToast('请输入正确的手机号码'); return; }
+
+  const childName = document.getElementById('bookChild').value.trim();
+  const notes = document.getElementById('bookNotes').value.trim();
+  const booking = {
+    ...bookingSlot,
+    parentName: name,
+    parentPhone: phone,
+    childName,
+    notes,
+    status: 'pending',
+    teacherName: teacherData.teacherName,
+    teacherPhone: teacherData.teacherPhone,
+    createdAt: new Date().toISOString()
+  };
+
+  const myBookings = getMyBookings();
+  myBookings.push(booking);
+  saveMyBookings(myBookings);
+
+  closeBookModal();
+  document.getElementById('successMsg').textContent=
+    `${bookingSlot.date} ${dayOfWeek(bookingSlot.date)} ${bookingSlot.time} 课程已预约`;
+  document.getElementById('successModal').classList.add('show');
+  renderSlots();
+}
+
+function closeSuccessModal(){
+  document.getElementById('successModal').classList.remove('show');
+}
+
+function cancelBooking(date,time){
+  if(!confirm('确定取消这个预约吗？')) return;
+  const myBookings = getMyBookings();
+  const filtered = myBookings.filter(b=>!(b.date===date && b.time===time));
+  saveMyBookings(filtered);
+  renderMyBookings();
+  renderSlots();
+  showToast('已取消预约');
+}
+
+// ========== 初始化 ==========
+function init(){
+  teacherData = parseHash();
+  if(!teacherData){
+    document.getElementById('dataExpired').style.display='block';
+    document.getElementById('weekStrip').style.display='none';
+    document.getElementById('slotsContainer').style.display='none';
+    document.getElementById('slotDateLabel').style.display='none';
+    document.getElementById('slotCount').style.display='none';
+    document.querySelector('.tabs').style.display='none';
+    return;
+  }
+  document.getElementById('dataExpired').style.display='none';
+  document.getElementById('teacherName').textContent = teacherData.teacherName+'的课程';
+  document.getElementById('teacherSubject').textContent = teacherData.teacherSubject||'';
+  document.getElementById('teacherAvatar').textContent = (teacherData.teacherName||'教')[0];
+
+  initWeek();
+  renderWeekStrip();
+  renderSlots();
+  renderMyBookings();
+
+  // Get week range for display
+  const we = new Date(weekStart+'T00:00:00');
+  we.setDate(we.getDate()+6);
+  document.getElementById('slotCount').textContent=
+    `共${(teacherData.openSlots||[]).length}个可约时段`;
+}
+
+init();
+</script>
+</body>
+</html>

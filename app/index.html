@@ -346,6 +346,7 @@ body{
   <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--gray-100);">
     <div class="section-header"><span class="section-title" style="font-size:13px;color:var(--gray-400);">⚙️ 数据管理</span></div>
     <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="editTeacherInfo()" style="flex:1;font-size:11px;">👤 教师信息</button>
       <button class="btn btn-outline btn-sm" onclick="exportData()" style="flex:1;">📥 导出备份</button>
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()" style="flex:1;">📤 导入恢复</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
@@ -380,6 +381,9 @@ body{
       <button class="btn-today" onclick="goToday()">今天</button>
       <button class="month-toggle-btn" onclick="toggleMonthPanel()" id="monthToggleBtn">📅 月历 ▾</button>
     </div>
+  </div>
+  <div style="margin-bottom:16px;">
+    <button class="btn btn-primary btn-sm" onclick="shareParentLink()" style="font-size:12px;background:var(--amber);color:#fff;width:100%;">🔗 生成家长预约链接</button>
   </div>
 
   <!-- 可折叠月历 -->
@@ -443,7 +447,13 @@ body{
 <div class="modal-overlay" id="modal-lesson">
   <div class="modal">
     <div class="modal-title">📅 安排课程</div>
-    <div class="form-group"><label class="form-label">学生 *</label>
+    <div class="form-group" style="margin-bottom:10px;">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-700);background:var(--gray-50);border-radius:var(--radius-sm);padding:10px 14px;">
+        <input type="checkbox" id="lOpenSlot" onchange="toggleOpenSlot()" style="accent-color:var(--teal);width:16px;height:16px;">
+        设为开放预约时段（不需指定学生，家长可自行预约）
+      </label>
+    </div>
+    <div class="form-group" id="lStudentGroup"><label class="form-label">学生 *</label>
       <select class="form-select" id="lStudent"><option value="">请选择学生</option></select>
     </div>
     <div class="form-row">
@@ -616,11 +626,18 @@ function openModal(type,editId){
     document.getElementById('lSubject').value='';
     document.getElementById('lNotes').value='';
     document.getElementById('lStudent').value='';
+    document.getElementById('lOpenSlot').checked=false;
+    document.getElementById('lStudentGroup').style.display='block';
     editingLessonId=null;
     if(editId){
       const l=data.lessons.find(l=>l.id===editId);
       if(l){
-        document.getElementById('lStudent').value=l.studentId;
+        if(l.studentId==='__open__'){
+          document.getElementById('lOpenSlot').checked=true;
+          document.getElementById('lStudentGroup').style.display='none';
+        }else{
+          document.getElementById('lStudent').value=l.studentId;
+        }
         document.getElementById('lDate').value=l.date;
         document.getElementById('lTime').value=l.time;
         document.getElementById('lDuration').value=l.duration;
@@ -646,6 +663,11 @@ function openModal(type,editId){
   }
 }
 function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); if(type==='student')editingStudentId=null; if(type==='lesson')editingLessonId=null; }
+function toggleOpenSlot(){
+  const checked=document.getElementById('lOpenSlot').checked;
+  document.getElementById('lStudentGroup').style.display=checked?'none':'block';
+  document.getElementById('lStudent').required=!checked;
+}
 function populateStudentSelect(selectId){
   const sel=document.getElementById(selectId);
   sel.innerHTML='<option value="">请选择学生</option>'+data.students.map(s=>`<option value="${s.id}">${s.name}${s.subject?' - '+s.subject:''}</option>`).join('');
@@ -683,10 +705,11 @@ function deleteStudent(id){
 // ====== 保存课程 ======
 function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function saveLesson(){
-  const studentId=document.getElementById('lStudent').value;
+  const isOpenSlot=document.getElementById('lOpenSlot').checked;
+  const studentId=isOpenSlot?'__open__':document.getElementById('lStudent').value;
   const date=document.getElementById('lDate').value;
   const time=document.getElementById('lTime').value;
-  if(!studentId){ showToast('请选择学生'); return; }
+  if(!studentId && !isOpenSlot){ showToast('请选择学生'); return; }
   if(!date){ showToast('请选择日期'); return; }
   if(!time){ showToast('请选择时间'); return; }
   const duration=parseInt(document.getElementById('lDuration').value)||60;
@@ -701,9 +724,9 @@ function saveLesson(){
     showToast(`⚠️ 时间冲突：${conflict.time} 已有「${conflict.studentName}」的课程`);
     return;
   }
-  const s=data.students.find(s=>s.id===studentId);
+  const s=isOpenSlot?null:data.students.find(s=>s.id===studentId);
   const lessonData={
-    studentId, studentName:s?s.name:'未知', date, time, duration,
+    studentId, studentName:isOpenSlot?'开放预约':(s?s.name:'未知'), date, time, duration,
     fee:parseInt(document.getElementById('lFee').value)||0,
     payMethod:document.getElementById('lPayMethod').value,
     subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
@@ -725,6 +748,7 @@ function saveLesson(){
 function updateLessonStatus(id,status){
   const l=data.lessons.find(l=>l.id===id);
   if(!l)return;
+  if(l.studentId==='__open__' && status==='done'){ showToast('⚠️ 请先编辑开放时段，添加学生后再标记完成'); return; }
   const s=data.students.find(s=>s.id===l.studentId);
 
   // 撤销之前的消课效果（done→cancelled 或 done→pending）
@@ -846,13 +870,14 @@ function renderHome(){
     return;
   }
   container.innerHTML=todayLessons.map(l=>{
-    const color=avatarColor(l.studentName);
+    const isOpen=l.studentId==='__open__';
+    const color=isOpen?'var(--teal)':avatarColor(l.studentName);
     const endTime=calcEndTime(l.time,l.duration);
     return `
-    <div class="home-lesson-item" onclick="switchTab('lessons',td)">
-      <div class="avatar" style="background:${color}">${l.studentName[0]}</div>
-      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time}-${endTime} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
-      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>
+    <div class="home-lesson-item" onclick="switchTab('lessons',td)" style="${isOpen?'border-left:3px dashed var(--teal);':''}">
+      <div class="avatar" style="background:${color}">${isOpen?'🔓':l.studentName[0]}</div>
+      <div class="info"><div class="name">${isOpen?'🔓 开放预约':l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time}-${endTime} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
+      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':isOpen?'待约':'待上'}</span></div>
     </div>`;
   }).join('');
 }
@@ -1066,11 +1091,12 @@ function renderDayLessons(){
     return;
   }
   container.innerHTML = list.map(l=>{
-    const color = avatarColor(l.studentName);
+    const isOpen = l.studentId==='__open__';
+    const color = isOpen?'var(--teal)':avatarColor(l.studentName);
     const endTime = calcEndTime(l.time, l.duration);
     const cls = l.status==='done'?'done':l.status==='cancelled'?'cancelled':'';
     return `
-    <div class="course-card ${cls}">
+    <div class="course-card ${cls}" style="${isOpen?'border:2px dashed var(--teal);background:var(--teal-bg);':''}">
       <div class="cc-bar" style="background:${color}"></div>
       <div class="cc-body">
         <div class="cc-top">
@@ -1080,7 +1106,7 @@ function renderDayLessons(){
             ${l.status==='done'?'<span style="font-size:12px;color:var(--green);margin-left:4px;">✓</span>':''}
             ${l.status==='cancelled'?'<span style="font-size:12px;color:var(--gray-400);margin-left:4px;">✕</span>':''}
           </div>
-          <span class="cc-student-name">${l.studentName}</span>
+          <span class="cc-student-name" style="${isOpen?'color:var(--teal);':''}">${isOpen?'🔓 开放预约':l.studentName}</span>
           <button onclick="event.stopPropagation();openModal('lesson','${l.id}')" style="font-size:13px;border:none;background:none;cursor:pointer;color:var(--gray-400);padding:2px 4px;" title="编辑">✏️</button>
         </div>
         <div class="cc-tags">
@@ -1088,7 +1114,8 @@ function renderDayLessons(){
           <span class="cc-tag">⏱ ${l.duration}分钟</span>
           <span class="cc-tag">💰 ${fmtMoney(l.fee)}</span>
         </div>
-        ${l.status==='pending'?`
+        ${isOpen?`
+        <div style="font-size:12px;color:var(--teal-dark);margin-top:4px;">💡 家长扫码后可预约此时段 · 预约后请编辑添加学生</div>`:l.status==='pending'?`
         <div class="cc-actions">
           <button class="act-done" onclick="updateLessonStatus('${l.id}','done')">✓ 标记完成</button>
           <button class="act-cancel" onclick="updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
@@ -1169,6 +1196,64 @@ function exportCsv(){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`排课宝账单_${payYear}${String(payMonth+1).padStart(2,'0')}.csv`;
   a.click();URL.revokeObjectURL(url);showToast('账单已下载 ✓');
+}
+
+// ====== 分享家长预约链接 ======
+function getTeacherInfo(){
+  let info=null;
+  try{ info=JSON.parse(localStorage.getItem('pkbleacher_info')||'null'); }catch(e){}
+  if(!info){
+    const name=prompt('请设置您的称呼（家长端展示）：','')||'老师';
+    const subject=prompt('主要教学科目：','')||'';
+    const phone=prompt('联系电话（家长端展示）：','')||'';
+    info={name,subject,phone};
+    localStorage.setItem('pkbleacher_info',JSON.stringify(info));
+  }
+  return info;
+}
+
+function shareParentLink(){
+  const info=getTeacherInfo();
+  const td=today();
+  const openSlots=data.lessons.filter(l=>l.studentId==='__open__' && l.status==='pending' && l.date>=td)
+    .map(l=>({date:l.date,time:l.time,duration:l.duration,fee:l.fee,subject:l.subject,payMethod:l.payMethod}));
+  const bookedSlots=data.lessons.filter(l=>l.studentId!=='__open__' && l.status==='pending' && l.date>=td)
+    .map(l=>({date:l.date,time:l.time,duration:l.duration}));
+
+  if(openSlots.length===0){
+    showToast('⚠️ 请先添加开放预约时段'); return;
+  }
+
+  const payload={
+    teacherName:info.name, teacherSubject:info.subject, teacherPhone:info.phone,
+    openSlots, bookedSlots
+  };
+
+  const json=JSON.stringify(payload);
+  const b64=btoa(unescape(encodeURIComponent(json)));
+  const base=location.href.replace(/index\.html$/,'');
+  const url=base+'parent.html#'+'data='+b64;
+
+  // 复制到剪贴板
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>{
+      showToast('✅ 预约链接已复制，发给家长即可');
+    }).catch(()=>{ promptCopy(url); });
+  }else{
+    promptCopy(url);
+  }
+}
+
+function promptCopy(url){
+  const r=prompt('复制以下链接发给家长（或生成二维码）：',url);
+  if(r) showToast('✅ 已复制');
+}
+
+// ====== 更新教师信息 ======
+function editTeacherInfo(){
+  localStorage.removeItem('pkbleacher_info');
+  getTeacherInfo();
+  showToast('教师信息已更新 ✓');
 }
 
 // ====== 头像颜色 ======
