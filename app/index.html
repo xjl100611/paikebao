@@ -1203,10 +1203,13 @@ function getTeacherInfo(){
   let info=null;
   try{ info=JSON.parse(localStorage.getItem('pkbleacher_info')||'null'); }catch(e){}
   if(!info){
-    const name=prompt('请设置您的称呼（家长端展示）：','')||'老师';
-    const subject=prompt('主要教学科目：','')||'';
-    const phone=prompt('联系电话（家长端展示）：','')||'';
-    info={name,subject,phone};
+    const name=prompt('请设置您的称呼（家长端展示）：','');
+    if(name===null) return null;
+    const subject=prompt('主要教学科目：','');
+    if(subject===null) return null;
+    const phone=prompt('联系电话（家长端展示）：','');
+    if(phone===null) return null;
+    info={name:name||'老师',subject:subject||'',phone:phone||''};
     localStorage.setItem('pkbleacher_info',JSON.stringify(info));
   }
   return info;
@@ -1214,6 +1217,7 @@ function getTeacherInfo(){
 
 function shareParentLink(){
   const info=getTeacherInfo();
+  if(!info) return;
   const td=today();
   const openSlots=data.lessons.filter(l=>l.studentId==='__open__' && l.status==='pending' && l.date>=td)
     .map(l=>({date:l.date,time:l.time,duration:l.duration,fee:l.fee,subject:l.subject,payMethod:l.payMethod}));
