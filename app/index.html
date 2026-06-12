@@ -454,7 +454,12 @@ body{
       <div class="form-group"><label class="form-label">时长(分钟)</label><input class="form-input" type="number" id="lDuration" value="60" min="15" step="15"></div>
       <div class="form-group"><label class="form-label">课时费(¥)</label><input class="form-input" type="number" id="lFee" value="200" min="0" step="1"></div>
     </div>
-    <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="lSubject" placeholder="自动从学生信息获取"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="lSubject" placeholder="自动从学生信息获取"></div>
+      <div class="form-group"><label class="form-label">支付方式</label>
+        <select class="form-select" id="lPayMethod"><option>微信</option><option>支付宝</option><option>现金</option><option>银行转账</option></select>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="lNotes" placeholder="课程备注..."></textarea></div>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-outline btn-block" onclick="closeModal('lesson')">取消</button>
@@ -607,6 +612,7 @@ function openModal(type,editId){
     document.getElementById('lTime').value=last.time||'10:00';
     document.getElementById('lDuration').value=last.duration||60;
     document.getElementById('lFee').value=last.fee||200;
+    document.getElementById('lPayMethod').value=last.payMethod||'微信';
     document.getElementById('lSubject').value='';
     document.getElementById('lNotes').value='';
     document.getElementById('lStudent').value='';
@@ -619,6 +625,7 @@ function openModal(type,editId){
         document.getElementById('lTime').value=l.time;
         document.getElementById('lDuration').value=l.duration;
         document.getElementById('lFee').value=l.fee;
+        document.getElementById('lPayMethod').value=l.payMethod||'微信';
         document.getElementById('lSubject').value=l.subject||'';
         document.getElementById('lNotes').value=l.notes||'';
         editingLessonId=editId;
@@ -698,6 +705,7 @@ function saveLesson(){
   const lessonData={
     studentId, studentName:s?s.name:'未知', date, time, duration,
     fee:parseInt(document.getElementById('lFee').value)||0,
+    payMethod:document.getElementById('lPayMethod').value,
     subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
     notes:document.getElementById('lNotes').value.trim()
   };
@@ -708,7 +716,7 @@ function saveLesson(){
   }else{
     data.lessons.push({id:genId(),...lessonData,status:'pending'});
   }
-  localStorage.setItem('pkblastLesson',JSON.stringify({time,duration,fee:lessonData.fee}));
+  localStorage.setItem('pkblastLesson',JSON.stringify({time,duration,fee:lessonData.fee,payMethod:lessonData.payMethod}));
   saveData(); closeModal('lesson'); renderAll(); showToast(editingLessonId?'课程已更新 ✓':'课程安排成功 ✓');
   editingLessonId=null;
 }
@@ -744,7 +752,7 @@ function updateLessonStatus(id,status){
       // 单次收费
       data.payments.push({
         id:genId(), studentId:l.studentId, studentName:l.studentName,
-        amount:l.fee, date:l.date, method:'微信', type:'single', lessonId:l.id,
+        amount:l.fee, date:l.date, method:l.payMethod||'微信', type:'single', lessonId:l.id,
         notes:`${l.date} ${l.subject||''}课时费`,
         createdAt:new Date().toISOString()
       });
