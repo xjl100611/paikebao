@@ -101,7 +101,7 @@
 
   /* CTA */
   .cta { padding: 80px 0; text-align: center; }
-  .cta-form { display: flex; gap: 10px; max-width: 420px; margin: 24px auto 0; }
+  .cta-form { max-width: 480px; margin: 24px auto 0; }
   .cta-form input {
     flex: 1; padding: 14px 18px; border: 2px solid var(--gray-200); border-radius: 10px;
     font-size: 15px; outline: none; transition: border-color .2s;
@@ -109,10 +109,6 @@
   .cta-form input:focus { border-color: var(--teal); }
   .cta-form button { padding: 14px 28px; white-space: nowrap; }
   .cta-note { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
-  .form-success {
-    display: none; background: var(--green-light); color: var(--green); padding: 14px 20px;
-    border-radius: 10px; font-weight: 600; max-width: 420px; margin: 24px auto 0;
-  }
 
   /* Footer */
   footer { padding: 40px 0; text-align: center; font-size: 13px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
@@ -220,12 +216,10 @@
   <div class="container">
     <h2 class="section-title">🎁 前 100 名免费内测，锁定终身 5 折</h2>
     <p style="font-size:16px;color:var(--gray-600);">留下微信，内测上线第一时间通知你。不上车不收费。</p>
-    <form class="cta-form" id="waitlistForm">
-      <input type="text" id="wechat" placeholder="输入你的微信号" required>
-      <button type="submit" class="btn btn-primary">🚀 抢占名额</button>
-    </form>
+    <div class="cta-form">
+      <iframe src="https://wj.qq.com/s2/27006252/ed8f/" width="100%" height="320" frameborder="0" style="border-radius:10px;background:#fff;" scrolling="no"></iframe>
+    </div>
     <p class="cta-note">不会发垃圾消息。内测上线后关闭免费入口。</p>
-    <div class="form-success" id="formSuccess">✅ 已锁定！内测上线后会微信通知你。如有问题加微信 paikebao_helper</div>
   </div>
 </section>
 
@@ -235,25 +229,6 @@
   </div>
 </footer>
 
-<script>
-  const form = document.getElementById('waitlistForm');
-  const success = document.getElementById('formSuccess');
-  form.addEventListener('submit', function(e) {
-    e.preventDefault();
-    const wechat = document.getElementById('wechat').value.trim();
-    if (!wechat) return;
-    // 收集注册信息
-    const entry = { wechat, time: new Date().toISOString(), source: 'landing' };
-    const list = JSON.parse(localStorage.getItem('paikebao_waitlist') || '[]');
-    list.push(entry);
-    localStorage.setItem('paikebao_waitlist', JSON.stringify(list));
-    // 显示成功
-    form.style.display = 'none';
-    success.style.display = 'block';
-    // 上报计数
-    console.log('新注册:', entry, '总计:', list.length);
-  });
-</script>
 
 </body>
 </html>
