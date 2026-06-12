@@ -430,6 +430,7 @@ body{
     <div class="form-group"><label class="form-label">姓名 *</label><input class="form-input" id="sName" placeholder="学生姓名"></div>
     <div class="form-group"><label class="form-label">手机号</label><input class="form-input" id="sPhone" placeholder="家长手机号" type="tel"></div>
     <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="sSubject" placeholder="如：钢琴、美术"></div>
+    <div class="form-group"><label class="form-label">欠费金额(¥)</label><input class="form-input" type="number" id="sDebt" value="0" min="0" step="0.01" placeholder="如未缴清的课时费"></div>
     <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="sNotes" placeholder="其他信息..."></textarea></div>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-outline btn-block" onclick="closeModal('student')">取消</button>
@@ -585,7 +586,7 @@ function openModal(type){
     document.querySelector('input[name="pType"][value="single"]').checked=true;
     togglePayType();
   }
-  if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value=''; }
+  if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value='';document.getElementById('sDebt').value='0'; }
 }
 function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); }
 function populateStudentSelect(selectId){
@@ -601,6 +602,7 @@ function saveStudent(){
     id:genId(), name,
     phone:document.getElementById('sPhone').value.trim(),
     subject:document.getElementById('sSubject').value.trim(),
+    debt:parseFloat(document.getElementById('sDebt').value)||0,
     notes:document.getElementById('sNotes').value.trim(),
     createdAt:new Date().toISOString()
   });
@@ -743,12 +745,14 @@ function renderHome(){
   document.getElementById('statWeek').textContent=weekLessons.length;
   document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
 
-  // 待续费提醒
+  // 待续费/欠费提醒
   const lowStudents=data.students.filter(s=>(s.remainingLessons||0)<=2 && (s.remainingLessons||0)>0);
   const zeroStudents=data.students.filter(s=>s.remainingLessons===0 && data.payments.some(p=>p.studentId===s.id && p.type==='package'));
+  const debtStudents=data.students.filter(s=>(s.debt||0)>0);
   let alertHtml='';
-  if(zeroStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">⚠️ <b>${zeroStudents.map(s=>s.name).join('、')}</b> 课时已用完，需续费</div>`;
-  if(lowStudents.length>0) alertHtml+=`<div style="background:#FFFBEB;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--amber-dark);display:flex;align-items:center;gap:8px;">📦 <b>${lowStudents.map(s=>`${s.name}(${s.remainingLessons}节)`).join('、')}</b> 课时即将用完</div>`;
+  if(zeroStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">⚠️ <b>${zeroStudents.map(s=>s.name).join('、')}</b> 课时已用完，需续费</div>`;
+  if(debtStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">💸 欠费提醒：<b>${debtStudents.map(s=>`${s.name}(¥${s.debt})`).join('、')}</b></div>`;
+  if(lowStudents.length>0) alertHtml+=`<div style="background:#FFFBEB;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--amber-dark);display:flex;align-items:center;gap:8px;">📦 <b>${lowStudents.map(s=>`${s.name}(${s.remainingLessons}节)`).join('、')}</b> 课时即将用完</div>`;
   const alertContainer=document.getElementById('homeAlerts');
   if(alertContainer) alertContainer.innerHTML=alertHtml;
 
@@ -790,13 +794,14 @@ function renderStudents(){
     const color=avatarColor(s.name);
     const lessonCount=data.lessons.filter(l=>l.studentId===s.id).length;
     const remain=s.remainingLessons||0;
+    const debt=s.debt||0;
     return `
     <div class="list-item" onclick="showStudentDetail('${s.id}')">
       <div class="avatar" style="background:${color}">${s.name[0]}</div>
-      <div class="info"><div class="name">${s.name} ${s.subject?'· '+s.subject:''}</div><div class="meta">${s.phone||'无手机号'} · ${lessonCount}次课程</div></div>
+      <div class="info"><div class="name">${s.name} ${s.subject?'· '+s.subject:''}</div><div class="meta">${s.phone||'无手机号'} · ${lessonCount}次课程${debt>0?' · ⚠️欠费':''}</div></div>
       <div class="right">
-        ${remain>0?`<span class="badge badge-success" style="font-size:12px;padding:4px 10px;">剩余${remain}节</span>`:''}
-        <span style="font-size:20px;color:var(--gray-400)">›</span>
+        ${debt>0?`<span class="badge badge-danger" style="font-size:11px;">欠¥${debt}</span>`:''}
+        ${remain>0?`<span class="badge badge-success" style="font-size:11px;">剩${remain}节</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -820,16 +825,21 @@ function showStudentDetail(id){
       <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
     </div>
     ${s.notes?`<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;">📝 ${s.notes}</div>`:''}
+    ${(s.debt||0)>0?`<div style="background:var(--red-light);border:1px solid #FECACA;border-radius:var(--radius);padding:14px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:13px;color:var(--red);">⚠️ 欠费金额</div>
+      <div style="font-size:32px;font-weight:800;color:var(--red);">¥${(s.debt||0).toLocaleString()}</div>
+    </div>`:''}
     ${(s.remainingLessons||0)>0?`<div style="background:var(--green-light);border-radius:var(--radius);padding:14px;margin-bottom:12px;text-align:center;">
       <div style="font-size:13px;color:#065F46;">📦 套餐剩余课时</div>
       <div style="font-size:32px;font-weight:800;color:var(--green);">${s.remainingLessons||0}<span style="font-size:16px;font-weight:400;"> 节</span></div>
-    </div>`:`<div style="background:var(--red-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;text-align:center;">
+    </div>`:(s.remainingLessons===undefined||s.remainingLessons===null)?'':`<div style="background:var(--red-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;text-align:center;">
       <div style="font-size:13px;color:var(--red);">⚠️ 暂无剩余课时</div>
     </div>`}
-    <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
       <div class="stat-card"><div class="stat-num" style="color:var(--teal);font-size:22px;">${lessons.length}</div><div class="stat-label">总课次</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--amber);font-size:22px;">${fmtMoney(totalPaid)}</div><div class="stat-label">总收费</div></div>
       <div class="stat-card"><div class="stat-num" style="color:${(s.remainingLessons||0)>0?'var(--green)':'var(--red)'};font-size:22px;">${s.remainingLessons||0}</div><div class="stat-label">剩余课时</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:${(s.debt||0)>0?'var(--red)':'var(--gray-400)'};font-size:22px;">¥${s.debt||0}</div><div class="stat-label">欠费</div></div>
     </div>
     <div class="detail-cards">
       <div class="detail-card"><div class="dc-header"><span class="dc-title">📅 近期课程</span></div>
