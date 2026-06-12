@@ -586,7 +586,7 @@ function showConfirm(title,msg,cb){
   document.getElementById('cdMsg').textContent=msg;
   document.getElementById('confirmDialog').classList.add('show');
   confirmCb=cb;
-  document.getElementById('cdConfirm').onclick=()=>{ closeConfirm(); if(confirmCb)confirmCb(); };
+  document.getElementById('cdConfirm').onclick=()=>{ const cb=confirmCb; closeConfirm(); if(cb)cb(); };
 }
 function closeConfirm(){ document.getElementById('confirmDialog').classList.remove('show'); confirmCb=null; }
 
