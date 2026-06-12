@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排课宝 — 独立教师的排课收费管家</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --teal: #0D9488; --teal-dark: #0F766E; --teal-light: #CCFBF1;
+    --amber: #F59E0B; --amber-dark: #D97706;
+    --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-600: #4B5563;
+    --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+    --red: #EF4444; --red-light: #FEF2F2;
+    --green: #10B981; --green-light: #ECFDF5;
+    --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-lg: 0 10px 25px rgba(0,0,0,.08), 0 4px 10px rgba(0,0,0,.04);
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--gray-800); line-height: 1.6; background: #fff;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 24px; max-width: 960px; margin: 0 auto;
+  }
+  .logo { font-size: 20px; font-weight: 700; color: var(--teal); letter-spacing: -.5px; }
+  .nav-cta {
+    background: var(--teal); color: #fff; border: none; padding: 8px 20px;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .2s;
+  }
+  .nav-cta:hover { background: var(--teal-dark); }
+
+  /* Hero */
+  .hero { padding: 60px 0 80px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before {
+    content: ''; position: absolute; top: -250px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px; background: radial-gradient(circle, var(--teal-light) 0%, transparent 70%);
+    z-index: -1;
+  }
+  .hero-tag {
+    display: inline-block; background: var(--teal-light); color: var(--teal-dark);
+    padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 42px; font-weight: 800; line-height: 1.2; letter-spacing: -1px; margin-bottom: 16px; }
+  .hero h1 em { font-style: normal; color: var(--teal); text-decoration: underline; text-decoration-color: var(--amber); text-underline-offset: 6px; }
+  .hero p { font-size: 18px; color: var(--gray-600); max-width: 500px; margin: 0 auto 32px; }
+  .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 14px 32px;
+    border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; border: none;
+    text-decoration: none; transition: all .2s;
+  }
+  .btn-primary { background: var(--teal); color: #fff; box-shadow: 0 4px 14px rgba(13,148,136,.35); }
+  .btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); }
+  .btn-outline { background: #fff; color: var(--gray-800); border: 2px solid var(--gray-200); }
+  .btn-outline:hover { border-color: var(--gray-300); transform: translateY(-1px); }
+  .hero-note { font-size: 13px; color: var(--gray-400); margin-top: 16px; }
+
+  /* Pain vs Gain */
+  .compare { padding: 60px 0; background: var(--gray-50); }
+  .section-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 40px; letter-spacing: -.5px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 760px; margin: 0 auto; }
+  .compare-card { background: #fff; border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+  .compare-card.bad { border-left: 4px solid var(--red); }
+  .compare-card.good { border-left: 4px solid var(--green); }
+  .compare-card h3 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .compare-card ul { list-style: none; font-size: 14px; color: var(--gray-600); }
+  .compare-card li { padding: 6px 0; display: flex; align-items: flex-start; gap: 8px; }
+  .compare-card li::before { content: '✕'; color: var(--red); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .compare-card.good li::before { content: '✓'; color: var(--green); }
+
+  /* Features */
+  .features { padding: 80px 0; }
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feature-card {
+    text-align: center; padding: 36px 24px; border-radius: var(--radius);
+    border: 1px solid var(--gray-200); transition: box-shadow .2s;
+  }
+  .feature-card:hover { box-shadow: var(--shadow-lg); }
+  .feature-icon { font-size: 40px; margin-bottom: 16px; }
+  .feature-card h3 { font-size: 18px; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; color: var(--gray-600); }
+
+  /* Pricing */
+  .pricing { padding: 60px 0; background: var(--gray-50); text-align: center; }
+  .pricing-card { display: inline-block; background: #fff; border-radius: var(--radius); padding: 40px 36px; box-shadow: var(--shadow-lg); border: 2px solid var(--teal); position: relative; }
+  .pricing-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--amber); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .price { font-size: 48px; font-weight: 800; letter-spacing: -2px; }
+  .price small { font-size: 16px; font-weight: 400; color: var(--gray-400); }
+  .pricing-card p { color: var(--gray-600); font-size: 14px; margin: 8px 0 20px; }
+  .pricing-features { list-style: none; text-align: left; font-size: 14px; margin-bottom: 20px; }
+  .pricing-features li { padding: 6px 0; }
+  .pricing-features li::before { content: '✓ '; color: var(--green); font-weight: 700; }
+
+  /* CTA */
+  .cta { padding: 80px 0; text-align: center; }
+  .cta-form { display: flex; gap: 10px; max-width: 420px; margin: 24px auto 0; }
+  .cta-form input {
+    flex: 1; padding: 14px 18px; border: 2px solid var(--gray-200); border-radius: 10px;
+    font-size: 15px; outline: none; transition: border-color .2s;
+  }
+  .cta-form input:focus { border-color: var(--teal); }
+  .cta-form button { padding: 14px 28px; white-space: nowrap; }
+  .cta-note { font-size: 12px; color: var(--gray-400); margin-top: 10px; }
+  .form-success {
+    display: none; background: var(--green-light); color: var(--green); padding: 14px 20px;
+    border-radius: 10px; font-weight: 600; max-width: 420px; margin: 24px auto 0;
+  }
+
+  /* Footer */
+  footer { padding: 40px 0; text-align: center; font-size: 13px; color: var(--gray-400); border-top: 1px solid var(--gray-100); }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 30px; }
+    .compare-grid, .features-grid { grid-template-columns: 1fr; }
+    .cta-form { flex-direction: column; }
+    .pricing-card { padding: 28px 24px; }
+    .price { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">📅 排课宝</span>
+  <a href="#waitlist" class="nav-cta">抢先体验</a>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-tag">🚀 专为独立教师打造</span>
+    <h1>告别微信记课<em>算错账</em>的日子</h1>
+    <p>排课、消课、收费、对账 — 一个工具全搞定。每天省下 1 小时，每月多收 30% 课时费。</p>
+    <div class="hero-buttons">
+      <a href="#waitlist" class="btn btn-primary">🎁 免费获取内测资格</a>
+      <a href="#compare" class="btn btn-outline">看看你现在的损失 →</a>
+    </div>
+    <p class="hero-note">前 100 名内测用户享终身 5 折优惠</p>
+  </div>
+</section>
+
+<section id="compare" class="compare">
+  <div class="container">
+    <h2 class="section-title">你现在正在损失多少？</h2>
+    <div class="compare-grid">
+      <div class="compare-card bad">
+        <h3>😰 现在的你</h3>
+        <ul>
+          <li>微信上一对一发消息约时间，翻聊天记录翻到崩溃</li>
+          <li>课时费月底手工算，经常漏收、少收、算错</li>
+          <li>家长临时请假，空出来的时段根本来不及填</li>
+          <li>续费全靠脑子记，该交了没人提醒</li>
+          <li>月底对账花半天，一年浪费 60 个小时</li>
+        </ul>
+      </div>
+      <div class="compare-card good">
+        <h3>😎 用排课宝之后</h3>
+        <ul>
+          <li>家长扫码看空闲时段，自主预约，不用你来回来去发消息</li>
+          <li>系统自动计费，月底一键导出账单，0 误差</li>
+          <li>有人请假自动通知等位家长，空位秒填</li>
+          <li>续费日自动提醒，家长端收到通知主动续</li>
+          <li>月底对账 10 秒钟，一年多出 60 小时自由时间</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2 class="section-title">三个功能，解决全部问题</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <h3>智能排课日历</h3>
+        <p>设好你的可用时段，家长扫码自主预约。有人请假自动释放空位，匹配等位家长。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <h3>自动计费对账</h3>
+        <p>每次消课自动入账，按月/按课次灵活计费。月底一键导出账单，课时费一分不少。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>智能通知提醒</h3>
+        <p>课前2小时自动提醒家长。续费到期前7天推送通知。请假变动实时同步，家长秒知。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing">
+  <div class="container">
+    <h2 class="section-title">简单定价，无隐形费用</h2>
+    <div class="pricing-card">
+      <span class="pricing-badge">内测特惠</span>
+      <div class="price">¥49<small>/月</small></div>
+      <p>正式上线后恢复 ¥99/月</p>
+      <ul class="pricing-features">
+        <li>无限学生、无限课时</li>
+        <li>全部功能无限制</li>
+        <li>7×12 小时客服支持</li>
+        <li>随时可取消</li>
+      </ul>
+      <a href="#waitlist" class="btn btn-primary" style="width:100%;justify-content:center;">锁定内测价 →</a>
+    </div>
+  </div>
+</section>
+
+<section class="cta" id="waitlist">
+  <div class="container">
+    <h2 class="section-title">🎁 前 100 名免费内测，锁定终身 5 折</h2>
+    <p style="font-size:16px;color:var(--gray-600);">留下微信，内测上线第一时间通知你。不上车不收费。</p>
+    <form class="cta-form" id="waitlistForm">
+      <input type="text" id="wechat" placeholder="输入你的微信号" required>
+      <button type="submit" class="btn btn-primary">🚀 抢占名额</button>
+    </form>
+    <p class="cta-note">不会发垃圾消息。内测上线后关闭免费入口。</p>
+    <div class="form-success" id="formSuccess">✅ 已锁定！内测上线后会微信通知你。如有问题加微信 paikebao_helper</div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 排课宝 · 独立教师的排课收费管家 · 内测中</p>
+  </div>
+</footer>
+
+<script>
+  const form = document.getElementById('waitlistForm');
+  const success = document.getElementById('formSuccess');
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const wechat = document.getElementById('wechat').value.trim();
+    if (!wechat) return;
+    // 收集注册信息
+    const entry = { wechat, time: new Date().toISOString(), source: 'landing' };
+    const list = JSON.parse(localStorage.getItem('paikebao_waitlist') || '[]');
+    list.push(entry);
+    localStorage.setItem('paikebao_waitlist', JSON.stringify(list));
+    // 显示成功
+    form.style.display = 'none';
+    success.style.display = 'block';
+    // 上报计数
+    console.log('新注册:', entry, '总计:', list.length);
+  });
+</script>
+
+</body>
+</html>
