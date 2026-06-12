@@ -576,19 +576,69 @@ function showConfirm(title,msg,cb){
 function closeConfirm(){ document.getElementById('confirmDialog').classList.remove('show'); confirmCb=null; }
 
 // ========== Modal ==========
-function openModal(type){
+let editingStudentId=null, editingLessonId=null;
+
+function openModal(type,editId){
   const el=document.getElementById('modal-'+type); el.classList.add('show');
-  if(type==='lesson'){ populateStudentSelect('lStudent'); document.getElementById('lDate').value=selectedDate; document.getElementById('lTime').value='10:00'; }
+  if(type==='student'){
+    document.getElementById('sName').value='';document.getElementById('sPhone').value='';
+    document.getElementById('sSubject').value='';document.getElementById('sNotes').value='';
+    document.getElementById('sDebt').value='0';
+    editingStudentId=null;
+    if(editId){
+      const s=data.students.find(s=>s.id===editId);
+      if(s){
+        document.getElementById('sName').value=s.name;
+        document.getElementById('sPhone').value=s.phone||'';
+        document.getElementById('sSubject').value=s.subject||'';
+        document.getElementById('sNotes').value=s.notes||'';
+        document.getElementById('sDebt').value=s.debt||0;
+        editingStudentId=editId;
+        document.querySelector('#modal-student .modal-title').textContent='✏️ 编辑学生';
+      }
+    }else{
+      document.querySelector('#modal-student .modal-title').textContent='👤 添加学生';
+    }
+  }
+  if(type==='lesson'){
+    populateStudentSelect('lStudent');
+    document.getElementById('lDate').value=selectedDate;
+    const last=JSON.parse(localStorage.getItem('pkblastLesson')||'{}');
+    document.getElementById('lTime').value=last.time||'10:00';
+    document.getElementById('lDuration').value=last.duration||60;
+    document.getElementById('lFee').value=last.fee||200;
+    document.getElementById('lSubject').value='';
+    document.getElementById('lNotes').value='';
+    document.getElementById('lStudent').value='';
+    editingLessonId=null;
+    if(editId){
+      const l=data.lessons.find(l=>l.id===editId);
+      if(l){
+        document.getElementById('lStudent').value=l.studentId;
+        document.getElementById('lDate').value=l.date;
+        document.getElementById('lTime').value=l.time;
+        document.getElementById('lDuration').value=l.duration;
+        document.getElementById('lFee').value=l.fee;
+        document.getElementById('lSubject').value=l.subject||'';
+        document.getElementById('lNotes').value=l.notes||'';
+        editingLessonId=editId;
+        document.querySelector('#modal-lesson .modal-title').textContent='✏️ 编辑课程';
+      }
+    }else{
+      document.querySelector('#modal-lesson .modal-title').textContent='📅 安排课程';
+    }
+  }
   if(type==='payment'){
-    populateStudentSelect('pStudent'); document.getElementById('pDate').value=today();
+    populateStudentSelect('pStudent');
+    document.getElementById('pStudent').value='';
+    document.getElementById('pDate').value=today();
     document.getElementById('pAmount').value='';
     document.getElementById('pNotes').value='';
     document.querySelector('input[name="pType"][value="single"]').checked=true;
     togglePayType();
   }
-  if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value='';document.getElementById('sDebt').value='0'; }
 }
-function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); }
+function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); if(type==='student')editingStudentId=null; if(type==='lesson')editingLessonId=null; }
 function populateStudentSelect(selectId){
   const sel=document.getElementById(selectId);
   sel.innerHTML='<option value="">请选择学生</option>'+data.students.map(s=>`<option value="${s.id}">${s.name}${s.subject?' - '+s.subject:''}</option>`).join('');
@@ -598,15 +648,21 @@ function populateStudentSelect(selectId){
 function saveStudent(){
   const name=document.getElementById('sName').value.trim();
   if(!name){ showToast('请输入学生姓名'); return; }
-  data.students.push({
-    id:genId(), name,
-    phone:document.getElementById('sPhone').value.trim(),
+  const sData={
+    name, phone:document.getElementById('sPhone').value.trim(),
     subject:document.getElementById('sSubject').value.trim(),
     debt:parseFloat(document.getElementById('sDebt').value)||0,
-    notes:document.getElementById('sNotes').value.trim(),
-    createdAt:new Date().toISOString()
-  });
-  saveData(); closeModal('student'); renderAll(); showToast('学生添加成功 ✓');
+    notes:document.getElementById('sNotes').value.trim()
+  };
+  if(editingStudentId){
+    const s=data.students.find(s=>s.id===editingStudentId);
+    if(s){ Object.assign(s,sData); }
+    editingStudentId=null;
+  }else{
+    data.students.push({id:genId(),...sData,remainingLessons:0,createdAt:new Date().toISOString()});
+  }
+  saveData(); closeModal('student'); renderAll(); showToast(editingStudentId?'学生已更新 ✓':'学生添加成功 ✓');
+  editingStudentId=null;
 }
 function deleteStudent(id){
   const s=data.students.find(s=>s.id===id);
@@ -628,9 +684,9 @@ function saveLesson(){
   if(!time){ showToast('请选择时间'); return; }
   const duration=parseInt(document.getElementById('lDuration').value)||60;
   const newStart=timeToMin(time), newEnd=newStart+duration;
-  // 冲突检测
+  // 冲突检测（编辑时排除自身）
   const conflict=data.lessons.find(l=>{
-    if(l.date!==date || l.status==='cancelled') return false;
+    if(l.date!==date || l.status==='cancelled' || (editingLessonId && l.id===editingLessonId)) return false;
     const ls=timeToMin(l.time), le=ls+l.duration;
     return newStart<le && newEnd>ls;
   });
@@ -639,43 +695,62 @@ function saveLesson(){
     return;
   }
   const s=data.students.find(s=>s.id===studentId);
-  data.lessons.push({
-    id:genId(), studentId, studentName:s?s.name:'未知',
-    date, time, duration,
+  const lessonData={
+    studentId, studentName:s?s.name:'未知', date, time, duration,
     fee:parseInt(document.getElementById('lFee').value)||0,
     subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
-    notes:document.getElementById('lNotes').value.trim(),
-    status:'pending'
-  });
-  saveData(); closeModal('lesson'); renderAll(); showToast('课程安排成功 ✓');
+    notes:document.getElementById('lNotes').value.trim()
+  };
+  if(editingLessonId){
+    const l=data.lessons.find(l=>l.id===editingLessonId);
+    if(l){ Object.assign(l,lessonData); }
+    editingLessonId=null;
+  }else{
+    data.lessons.push({id:genId(),...lessonData,status:'pending'});
+  }
+  localStorage.setItem('pkblastLesson',JSON.stringify({time,duration,fee:lessonData.fee}));
+  saveData(); closeModal('lesson'); renderAll(); showToast(editingLessonId?'课程已更新 ✓':'课程安排成功 ✓');
+  editingLessonId=null;
 }
 
 // ====== 课程状态变更 ======
 function updateLessonStatus(id,status){
   const l=data.lessons.find(l=>l.id===id);
   if(!l)return;
-  if(status==='done' && l.status==='pending'){
-    const s=data.students.find(s=>s.id===l.studentId);
+  const s=data.students.find(s=>s.id===l.studentId);
+
+  // 撤销之前的消课效果（done→cancelled 或 done→pending）
+  if(l.status==='done'){
+    if(l.deductedPackage){
+      // 归还套餐课时
+      if(s){ s.remainingLessons=(s.remainingLessons||0)+1; }
+      // 移除对应的消课日志
+      data.payments=data.payments.filter(p=>!(p.studentId===l.studentId&&p.type==='deduction'&&p.lessonId===l.id));
+      l.deductedPackage=false;
+    }else{
+      // 移除关联的单次收费记录
+      data.payments=data.payments.filter(p=>!(p.studentId===l.studentId&&p.lessonId===l.id&&p.type==='single'));
+    }
+  }
+
+  // 应用新状态的消课效果
+  if(status==='done'){
     if(s && (s.remainingLessons||0)>0){
-      // 套餐扣减
+      // 套餐扣减（不生成收费记录，只记录消课日志）
       s.remainingLessons--;
-      data.payments.push({
-        id:genId(), studentId:l.studentId, studentName:l.studentName,
-        amount:0, date:l.date, method:'套餐扣减',
-        notes:`${l.date} ${l.subject||''}课时费 (套餐剩余${s.remainingLessons}节)`,
-        createdAt:new Date().toISOString()
-      });
+      l.deductedPackage=true;
       if(s.remainingLessons===0){ showToast('⚠️ 课时已用完，提醒家长续费'); }
     }else{
       // 单次收费
       data.payments.push({
         id:genId(), studentId:l.studentId, studentName:l.studentName,
-        amount:l.fee, date:l.date, method:'微信',
+        amount:l.fee, date:l.date, method:'微信', type:'single', lessonId:l.id,
         notes:`${l.date} ${l.subject||''}课时费`,
         createdAt:new Date().toISOString()
       });
     }
   }
+
   l.status=status; saveData(); renderAll();
   showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':'状态已更新');
 }
@@ -740,7 +815,7 @@ function renderHome(){
   const ws=fmtDate(monday),we=fmtDate(sunday);
   const weekLessons=data.lessons.filter(l=>l.date>=ws&&l.date<=we);
   const todayPending=data.lessons.filter(l=>l.date===td&&l.status==='pending');
-  const monthPayments=data.payments.filter(p=>{const pd=new Date(p.date);return pd.getFullYear()===y&&pd.getMonth()===m;});
+  const monthPayments=data.payments.filter(p=>{const pd=new Date(p.date);return pd.getFullYear()===y&&pd.getMonth()===m&&p.type!=='deduction';});
   document.getElementById('statToday').textContent=todayPending.length;
   document.getElementById('statWeek').textContent=weekLessons.length;
   document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
@@ -766,7 +841,7 @@ function renderHome(){
     const color=avatarColor(l.studentName);
     const endTime=calcEndTime(l.time,l.duration);
     return `
-    <div class="home-lesson-item" onclick="switchTab('lessons')">
+    <div class="home-lesson-item" onclick="switchTab('lessons',td)">
       <div class="avatar" style="background:${color}">${l.studentName[0]}</div>
       <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time}-${endTime} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
       <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>
@@ -785,6 +860,7 @@ function renderStudents(){
   const q=(document.getElementById('studentSearch').value||'').trim().toLowerCase();
   const list=data.students.filter(s=>!q||s.name.toLowerCase().includes(q)||(s.subject||'').toLowerCase().includes(q)||(s.phone||'').includes(q));
   const container=document.getElementById('studentList');
+  container.style.display='block';
   document.getElementById('studentDetail').style.display='none';
   if(list.length===0){
     container.innerHTML=`<div class="empty"><div class="empty-icon">👤</div><p>${q?'没有匹配的学生':'还没有添加学生'}</p></div>`;
@@ -814,7 +890,7 @@ function showStudentDetail(id){
   const payments=data.payments.filter(p=>p.studentId===id).sort((a,b)=>b.date.localeCompare(a.date));
   const totalPaid=payments.reduce((sum,p)=>sum+p.amount,0);
   const container=document.getElementById('studentDetail');
-  document.getElementById('studentList').innerHTML='';
+  document.getElementById('studentList').style.display='none';
   container.style.display='block';
   container.innerHTML=`
     <button class="btn btn-outline btn-sm" onclick="renderStudents()" style="margin-bottom:12px;">← 返回列表</button>
@@ -822,6 +898,7 @@ function showStudentDetail(id){
       <div class="avatar" style="width:48px;height:48px;font-size:22px;background:${avatarColor(s.name)}">${s.name[0]}</div>
       <div><div style="font-size:18px;font-weight:700;">${s.name}</div><div style="font-size:13px;color:var(--gray-500);">${s.subject||'未设科目'} · ${s.phone||'无手机号'}</div></div>
       <span style="flex:1"></span>
+      <button class="btn btn-outline btn-sm" onclick="openModal('student','${s.id}')">✏️</button>
       <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
     </div>
     ${s.notes?`<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;">📝 ${s.notes}</div>`:''}
@@ -996,6 +1073,7 @@ function renderDayLessons(){
             ${l.status==='cancelled'?'<span style="font-size:12px;color:var(--gray-400);margin-left:4px;">✕</span>':''}
           </div>
           <span class="cc-student-name">${l.studentName}</span>
+          <button onclick="event.stopPropagation();openModal('lesson','${l.id}')" style="font-size:13px;border:none;background:none;cursor:pointer;color:var(--gray-400);padding:2px 4px;" title="编辑">✏️</button>
         </div>
         <div class="cc-tags">
           ${l.subject?`<span class="cc-tag">📖 ${l.subject}</span>`:''}
@@ -1031,7 +1109,7 @@ function initPayments(){
 function renderPayments(){
   document.getElementById('payMonth').textContent=fmtMonth(payYear,payMonth);
   const list=data.payments.filter(p=>{
-    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth;
+    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth&&p.type!=='deduction';
   }).sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||'').localeCompare(a.createdAt||''));
   document.getElementById('sumCount').textContent=list.length;
   document.getElementById('sumTotal').textContent=fmtMoney(list.reduce((s,p)=>s+p.amount,0));
@@ -1056,15 +1134,15 @@ function nextPayMonth(){if(payMonth===11){payYear++;payMonth=0;}else{payMonth++;
 // ====== CSV 导出 ======
 function exportCsv(){
   const list=data.payments.filter(p=>{
-    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth;
+    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth&&p.type!=='deduction';
   }).sort((a,b)=>a.date.localeCompare(b.date));
-  if(list.length===0){showToast('本月无数据可导出');return;}
+  if(list.length===0){showToast('本月无收费数据可导出');return;}
   // BOM for Excel UTF-8
   let csv='﻿';
   csv+=`排课宝账单 - ${fmtMonth(payYear,payMonth)}\n\n`;
   csv+='日期,学生,类型,金额,方式,备注\n';
   list.forEach(p=>{
-    const type=p.type==='package'?`套餐(${p.packageLessons||0}节)`:'单次';
+    const type=(p.type==='package'||p.type==='deduction')?`套餐(${p.packageLessons||0}节)`:p.type==='single'?'单次':'单次';
     csv+=`${p.date},${p.studentName},${type},${p.amount},${p.method},"${(p.notes||'').replace(/"/g,'""')}"\n`;
   });
   csv+='\n';
@@ -1093,14 +1171,22 @@ function avatarColor(name){
 }
 
 // ====== Tab切换 ======
-function switchTab(page){
+function switchTab(page,targetDate){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
   document.getElementById('page-'+page).classList.add('active');
   if(page==='home')renderHome();
   if(page==='students')renderStudents();
-  if(page==='lessons')renderLessons();
+  if(page==='lessons'){
+    if(targetDate){
+      selectedDate=targetDate;
+      const d=new Date(targetDate+'T00:00:00'); d.setDate(d.getDate()-d.getDay()); weekStart=fmtDate(d);
+    }else{
+      selectedDate=today(); initWeek();
+    }
+    renderLessons();
+  }
   if(page==='payments')renderPayments();
 }
 
