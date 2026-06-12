@@ -336,6 +336,8 @@ body{
     <button class="quick-btn" onclick="openModal('payment')"><span class="icon">💰</span>记录收费</button>
   </div>
 
+  <div id="homeAlerts"></div>
+
   <div class="section-header"><span class="section-title">📋 今日课程</span><span style="font-size:13px;color:var(--gray-400)" id="todayDate"></span></div>
   <div id="todayLessons"></div>
 
@@ -464,7 +466,18 @@ body{
     <div class="form-group"><label class="form-label">学生 *</label>
       <select class="form-select" id="pStudent"><option value="">请选择学生</option></select>
     </div>
+    <div class="form-group"><label class="form-label">收费类型</label>
+      <div style="display:flex;gap:8px;">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 14px;border:2px solid var(--teal);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;">
+          <input type="radio" name="pType" value="single" checked onchange="togglePayType()" style="accent-color:var(--teal)"> 单次收费
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 14px;border:2px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-weight:600;" id="pkgLabel">
+          <input type="radio" name="pType" value="package" onchange="togglePayType()" style="accent-color:var(--teal)"> 📦 课时套餐
+        </label>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">金额(¥) *</label><input class="form-input" type="number" id="pAmount" placeholder="0" min="0" step="0.01"></div>
+    <div class="form-group" id="pkgGroup" style="display:none;"><label class="form-label">课时数 *</label><input class="form-input" type="number" id="pLessons" value="10" min="1" step="1" placeholder="如：10"></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">日期</label><input class="form-input" type="date" id="pDate"></div>
       <div class="form-group"><label class="form-label">方式</label>
@@ -562,7 +575,13 @@ function closeConfirm(){ document.getElementById('confirmDialog').classList.remo
 function openModal(type){
   const el=document.getElementById('modal-'+type); el.classList.add('show');
   if(type==='lesson'){ populateStudentSelect('lStudent'); document.getElementById('lDate').value=selectedDate; document.getElementById('lTime').value='10:00'; }
-  if(type==='payment'){ populateStudentSelect('pStudent'); document.getElementById('pDate').value=today(); }
+  if(type==='payment'){
+    populateStudentSelect('pStudent'); document.getElementById('pDate').value=today();
+    document.getElementById('pAmount').value='';
+    document.getElementById('pNotes').value='';
+    document.querySelector('input[name="pType"][value="single"]').checked=true;
+    togglePayType();
+  }
   if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value=''; }
 }
 function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); }
@@ -631,12 +650,26 @@ function updateLessonStatus(id,status){
   const l=data.lessons.find(l=>l.id===id);
   if(!l)return;
   if(status==='done' && l.status==='pending'){
-    data.payments.push({
-      id:genId(), studentId:l.studentId, studentName:l.studentName,
-      amount:l.fee, date:l.date, method:'微信',
-      notes:`${l.date} ${l.subject||''}课时费`,
-      createdAt:new Date().toISOString()
-    });
+    const s=data.students.find(s=>s.id===l.studentId);
+    if(s && (s.remainingLessons||0)>0){
+      // 套餐扣减
+      s.remainingLessons--;
+      data.payments.push({
+        id:genId(), studentId:l.studentId, studentName:l.studentName,
+        amount:0, date:l.date, method:'套餐扣减',
+        notes:`${l.date} ${l.subject||''}课时费 (套餐剩余${s.remainingLessons}节)`,
+        createdAt:new Date().toISOString()
+      });
+      if(s.remainingLessons===0){ showToast('⚠️ 课时已用完，提醒家长续费'); }
+    }else{
+      // 单次收费
+      data.payments.push({
+        id:genId(), studentId:l.studentId, studentName:l.studentName,
+        amount:l.fee, date:l.date, method:'微信',
+        notes:`${l.date} ${l.subject||''}课时费`,
+        createdAt:new Date().toISOString()
+      });
+    }
   }
   l.status=status; saveData(); renderAll();
   showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':'状态已更新');
@@ -649,20 +682,37 @@ function deleteLesson(id){
 }
 
 // ====== 保存/删除收费 ======
+function togglePayType(){
+  const isPkg=document.querySelector('input[name="pType"]:checked').value==='package';
+  document.getElementById('pkgGroup').style.display=isPkg?'block':'none';
+  document.querySelectorAll('#modal-payment label').forEach(el=>{
+    if(el.id==='pkgLabel') el.style.borderColor=isPkg?'var(--teal)':'var(--gray-200)';
+    else if(el.querySelector('input')&&el.querySelector('input').value==='single') el.style.borderColor=isPkg?'var(--gray-200)':'var(--teal)';
+  });
+}
 function savePayment(){
   const studentId=document.getElementById('pStudent').value;
   const amount=parseFloat(document.getElementById('pAmount').value)||0;
   if(!studentId){ showToast('请选择学生'); return; }
   if(amount<=0){ showToast('请输入金额'); return; }
+  const isPkg=document.querySelector('input[name="pType"]:checked').value==='package';
+  const pkgLessons=isPkg?parseInt(document.getElementById('pLessons').value)||10:0;
+  if(isPkg && pkgLessons<=0){ showToast('请输入课时数'); return; }
   const s=data.students.find(s=>s.id===studentId);
+  if(isPkg && s){
+    s.remainingLessons=(s.remainingLessons||0)+pkgLessons;
+  }
   data.payments.push({
     id:genId(), studentId, studentName:s?s.name:'未知',
     amount, date:document.getElementById('pDate').value||today(),
     method:document.getElementById('pMethod').value,
-    notes:document.getElementById('pNotes').value.trim(),
+    notes:isPkg?`📦 ${pkgLessons}节套餐 · ${document.getElementById('pNotes').value.trim()||''}`:document.getElementById('pNotes').value.trim(),
+    type:isPkg?'package':'single',
+    packageLessons:isPkg?pkgLessons:0,
     createdAt:new Date().toISOString()
   });
-  saveData(); closeModal('payment'); renderAll(); showToast('收费记录成功 ✓');
+  saveData(); closeModal('payment'); renderAll();
+  showToast(isPkg?`套餐已开通：${pkgLessons}节课 ✓`:'收费记录成功 ✓');
 }
 function deletePayment(id){
   showConfirm('删除收费记录','确定删除这条收费记录吗？',()=>{
@@ -682,6 +732,15 @@ function renderHome(){
   document.getElementById('statStudents').textContent=data.students.length;
   document.getElementById('statLessons').textContent=monthLessons.length;
   document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
+
+  // 待续费提醒
+  const lowStudents=data.students.filter(s=>(s.remainingLessons||0)<=2 && (s.remainingLessons||0)>0);
+  const zeroStudents=data.students.filter(s=>s.remainingLessons===0 && data.payments.some(p=>p.studentId===s.id && p.type==='package'));
+  let alertHtml='';
+  if(zeroStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">⚠️ <b>${zeroStudents.map(s=>s.name).join('、')}</b> 课时已用完，需续费</div>`;
+  if(lowStudents.length>0) alertHtml+=`<div style="background:#FFFBEB;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--amber-dark);display:flex;align-items:center;gap:8px;">📦 <b>${lowStudents.map(s=>`${s.name}(${s.remainingLessons}节)`).join('、')}</b> 课时即将用完</div>`;
+  const alertContainer=document.getElementById('homeAlerts');
+  if(alertContainer) alertContainer.innerHTML=alertHtml;
 
   const todayLessons=data.lessons.filter(l=>l.date===td).sort((a,b)=>a.time.localeCompare(b.time));
   const container=document.getElementById('todayLessons');
@@ -720,11 +779,15 @@ function renderStudents(){
   container.innerHTML=list.map(s=>{
     const color=avatarColor(s.name);
     const lessonCount=data.lessons.filter(l=>l.studentId===s.id).length;
+    const remain=s.remainingLessons||0;
     return `
     <div class="list-item" onclick="showStudentDetail('${s.id}')">
       <div class="avatar" style="background:${color}">${s.name[0]}</div>
       <div class="info"><div class="name">${s.name} ${s.subject?'· '+s.subject:''}</div><div class="meta">${s.phone||'无手机号'} · ${lessonCount}次课程</div></div>
-      <div class="right"><span style="font-size:20px;color:var(--gray-400)">›</span></div>
+      <div class="right">
+        ${remain>0?`<span class="badge badge-success" style="font-size:12px;padding:4px 10px;">剩余${remain}节</span>`:''}
+        <span style="font-size:20px;color:var(--gray-400)">›</span>
+      </div>
     </div>`;
   }).join('');
 }
@@ -747,9 +810,16 @@ function showStudentDetail(id){
       <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
     </div>
     ${s.notes?`<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;">📝 ${s.notes}</div>`:''}
-    <div class="stats-row" style="grid-template-columns:1fr 1fr;">
+    ${(s.remainingLessons||0)>0?`<div style="background:var(--green-light);border-radius:var(--radius);padding:14px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:13px;color:#065F46;">📦 套餐剩余课时</div>
+      <div style="font-size:32px;font-weight:800;color:var(--green);">${s.remainingLessons||0}<span style="font-size:16px;font-weight:400;"> 节</span></div>
+    </div>`:`<div style="background:var(--red-light);border-radius:var(--radius);padding:12px;margin-bottom:12px;text-align:center;">
+      <div style="font-size:13px;color:var(--red);">⚠️ 暂无剩余课时</div>
+    </div>`}
+    <div class="stats-row" style="grid-template-columns:1fr 1fr 1fr;">
       <div class="stat-card"><div class="stat-num" style="color:var(--teal);font-size:22px;">${lessons.length}</div><div class="stat-label">总课次</div></div>
       <div class="stat-card"><div class="stat-num" style="color:var(--amber);font-size:22px;">${fmtMoney(totalPaid)}</div><div class="stat-label">总收费</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:${(s.remainingLessons||0)>0?'var(--green)':'var(--red)'};font-size:22px;">${s.remainingLessons||0}</div><div class="stat-label">剩余课时</div></div>
     </div>
     <div class="detail-cards">
       <div class="detail-card"><div class="dc-header"><span class="dc-title">📅 近期课程</span></div>
