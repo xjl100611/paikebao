@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>排课宝 — 排课收费管家</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0D9488;--teal-dark:#0F766E;--teal-light:#CCFBF1;--teal-bg:#F0FDFA;
+  --amber:#F59E0B;--amber-dark:#D97706;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-300:#D1D5DB;
+  --gray-400:#9CA3AF;--gray-500:#6B7280;--gray-600:#4B5563;--gray-700:#374151;
+  --gray-800:#1F2937;--gray-900:#111827;
+  --red:#EF4444;--red-light:#FEF2F2;--red-bg:#FEE2E2;
+  --green:#10B981;--green-light:#ECFDF5;--green-bg:#D1FAE5;
+  --blue:#3B82F6;--blue-light:#EFF6FF;
+  --purple:#8B5CF6;--purple-light:#F5F3FF;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  --shadow-lg:0 10px 25px rgba(0,0,0,.08),0 4px 10px rgba(0,0,0,.04);
+  --safe-bottom:env(safe-area-inset-bottom,16px);
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--gray-800);line-height:1.6;background:#f5f5f5;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  overscroll-behavior:none;
+}
+.app{
+  max-width:480px;margin:0 auto;min-height:100vh;background:#fff;
+  padding-bottom:calc(72px + var(--safe-bottom));
+  position:relative;
+}
+
+/* Header */
+.header{
+  padding:16px 20px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid var(--gray-100);position:sticky;top:0;background:#fff;z-index:10;
+}
+.header-title{font-size:18px;font-weight:700;color:var(--teal);display:flex;align-items:center;gap:6px;}
+.header-date{font-size:13px;color:var(--gray-400);}
+
+/* Page content */
+.page{display:none;padding:20px;}
+.page.active{display:block;}
+
+/* Stats cards */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.stat-card{
+  background:var(--gray-50);border-radius:var(--radius);padding:16px 12px;
+  text-align:center;cursor:default;
+}
+.stat-card .stat-num{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1.2;}
+.stat-card .stat-label{font-size:12px;color:var(--gray-500);margin-top:4px;}
+.stat-card:nth-child(1) .stat-num{color:var(--blue);}
+.stat-card:nth-child(2) .stat-num{color:var(--teal);}
+.stat-card:nth-child(3) .stat-num{color:var(--amber);}
+
+/* Section */
+.section-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+}
+.section-title{font-size:16px;font-weight:700;}
+
+/* Quick actions */
+.quick-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.quick-btn{
+  display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;
+  border-radius:var(--radius);border:1px solid var(--gray-200);background:#fff;
+  cursor:pointer;font-size:13px;font-weight:600;color:var(--gray-700);
+  transition:all .15s;
+}
+.quick-btn:active{background:var(--gray-50);transform:scale(.97);}
+.quick-btn .icon{font-size:24px;}
+
+/* List items */
+.list-item{
+  display:flex;align-items:center;padding:14px;background:var(--gray-50);
+  border-radius:var(--radius-sm);margin-bottom:8px;gap:12px;
+  cursor:pointer;transition:background .15s;
+}
+.list-item:active{background:var(--gray-100);}
+.list-item .avatar{
+  width:40px;height:40px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.list-item .info{flex:1;min-width:0;}
+.list-item .info .name{font-size:15px;font-weight:600;}
+.list-item .info .meta{font-size:12px;color:var(--gray-500);margin-top:2px;}
+.list-item .right{text-align:right;flex-shrink:0;}
+.list-item .right .amount{font-size:15px;font-weight:700;}
+.list-item .right .status{font-size:11px;padding:2px 8px;border-radius:10px;margin-top:2px;}
+
+/* Status badges */
+.badge{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:600;display:inline-block;}
+.badge-success{background:var(--green-bg);color:#065F46;}
+.badge-warning{background:#FEF3C7;color:#92400E;}
+.badge-danger{background:var(--red-bg);color:#991B1B;}
+.badge-info{background:var(--blue-light);color:#1E40AF;}
+
+/* Empty state */
+.empty{
+  text-align:center;padding:48px 20px;color:var(--gray-400);
+}
+.empty .empty-icon{font-size:48px;margin-bottom:12px;}
+.empty p{font-size:14px;}
+
+/* Button */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;
+  cursor:pointer;border:none;transition:all .15s;white-space:nowrap;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{background:var(--teal);color:#fff;}
+.btn-primary:active{background:var(--teal-dark);}
+.btn-outline{background:#fff;color:var(--gray-700);border:1px solid var(--gray-300);}
+.btn-sm{padding:8px 14px;font-size:13px;}
+.btn-block{width:100%;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:active{opacity:.85;}
+
+/* Modal */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;
+  align-items:flex-end;justify-content:center;
+}
+.modal-overlay.show{display:flex;}
+.modal{
+  background:#fff;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;
+  border-radius:16px 16px 0 0;padding:24px 20px calc(20px + var(--safe-bottom));
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:20px;text-align:center;}
+
+/* Form */
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--gray-700);margin-bottom:6px;}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);
+  font-size:15px;font-family:inherit;outline:none;transition:border-color .15s;
+  background:#fff;-webkit-appearance:none;
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--teal);}
+.form-textarea{resize:vertical;min-height:60px;}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* Calendar */
+.calendar{}
+.calendar-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.calendar-nav button{
+  background:none;border:none;font-size:20px;cursor:pointer;padding:6px 10px;
+  color:var(--gray-600);border-radius:8px;
+}
+.calendar-nav button:active{background:var(--gray-100);}
+.calendar-month{font-size:16px;font-weight:700;}
+.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:8px;}
+.calendar-weekdays span{font-size:11px;color:var(--gray-400);padding:6px 0;}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.calendar-day{
+  aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:50%;font-size:14px;cursor:pointer;position:relative;
+  transition:background .15s;
+}
+.calendar-day:active{background:var(--gray-100);}
+.calendar-day.today{background:var(--teal);color:#fff;font-weight:700;}
+.calendar-day.has-lesson::after{
+  content:'';width:5px;height:5px;background:var(--teal);border-radius:50%;
+  position:absolute;bottom:4px;
+}
+.calendar-day.today::after{background:#fff;}
+.calendar-day.empty{cursor:default;}
+.calendar-day.selected{background:var(--teal-light);color:var(--teal-dark);font-weight:700;}
+
+/* Bottom nav */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr);
+  background:#fff;border-top:1px solid var(--gray-200);
+  padding:8px 0 var(--safe-bottom);
+  z-index:20;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  cursor:pointer;padding:4px 0;font-size:10px;color:var(--gray-400);
+  transition:color .15s;border:none;background:none;
+}
+.nav-item .nav-icon{font-size:20px;}
+.nav-item.active{color:var(--teal);font-weight:600;}
+
+/* Search */
+.search-box{
+  display:flex;gap:8px;margin-bottom:16px;
+}
+.search-input{
+  flex:1;padding:10px 14px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);
+  font-size:14px;outline:none;background:var(--gray-50);
+}
+.search-input:focus{border-color:var(--teal);background:#fff;}
+
+/* Student detail */
+.detail-cards{margin-top:16px;}
+.detail-card{
+  background:var(--gray-50);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;
+}
+.detail-card .dc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.detail-card .dc-title{font-size:13px;color:var(--gray-500);}
+
+/* Toast */
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:200;
+  background:var(--gray-900);color:#fff;padding:10px 24px;border-radius:20px;
+  font-size:14px;animation:fadeIn .3s ease;
+  pointer-events:none;
+}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* Confirm dialog */
+.confirm-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:150;
+  align-items:center;justify-content:center;
+}
+.confirm-overlay.show{display:flex;}
+.confirm-dialog{
+  background:#fff;border-radius:var(--radius);padding:24px;width:calc(100% - 48px);
+  max-width:360px;text-align:center;
+}
+.confirm-dialog .cd-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.confirm-dialog .cd-msg{font-size:14px;color:var(--gray-500);margin-bottom:20px;}
+.confirm-dialog .cd-buttons{display:flex;gap:10px;}
+.confirm-dialog .cd-buttons .btn{flex:1;}
+
+/* Month picker */
+.month-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.month-filter button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--gray-600);}
+.month-filter .month-label{font-size:15px;font-weight:600;min-width:100px;text-align:center;}
+.summary-row{display:flex;justify-content:space-around;background:var(--gray-50);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;}
+.summary-item{text-align:center;}
+.summary-item .sum-num{font-size:20px;font-weight:700;color:var(--teal);}
+.summary-item .sum-label{font-size:11px;color:var(--gray-500);}
+
+@media(min-width:480px){
+  .app{border-left:1px solid var(--gray-200);border-right:1px solid var(--gray-200);}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- Header -->
+<header class="header">
+  <span class="header-title">📅 排课宝</span>
+  <span class="header-date" id="headerDate"></span>
+</header>
+
+<!-- ====== 首页仪表盘 ====== -->
+<div class="page active" id="page-home">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">学生总数</div></div>
+    <div class="stat-card"><div class="stat-num" id="statLessons">0</div><div class="stat-label">本月课次</div></div>
+    <div class="stat-card"><div class="stat-num" id="statIncome">¥0</div><div class="stat-label">本月收入</div></div>
+  </div>
+
+  <div class="quick-actions">
+    <button class="quick-btn" onclick="openModal('student')"><span class="icon">👤</span>添加学生</button>
+    <button class="quick-btn" onclick="openModal('lesson')"><span class="icon">📅</span>安排课程</button>
+    <button class="quick-btn" onclick="openModal('payment')"><span class="icon">💰</span>记录收费</button>
+  </div>
+
+  <div class="section-header"><span class="section-title">📋 今日课程</span><span style="font-size:13px;color:var(--gray-400)" id="todayDate"></span></div>
+  <div id="todayLessons"></div>
+</div>
+
+<!-- ====== 学生管理 ====== -->
+<div class="page" id="page-students">
+  <div class="search-box">
+    <input type="text" class="search-input" placeholder="🔍 搜索学生姓名..." id="studentSearch" oninput="renderStudents()">
+    <button class="btn btn-primary btn-sm" onclick="openModal('student')">+ 添加</button>
+  </div>
+  <div id="studentList"></div>
+  <div id="studentDetail" style="display:none"></div>
+</div>
+
+<!-- ====== 课程安排 ====== -->
+<div class="page" id="page-lessons">
+  <div class="calendar-nav">
+    <button onclick="prevMonth()">◀</button>
+    <span class="calendar-month" id="calMonth"></span>
+    <button onclick="nextMonth()">▶</button>
+  </div>
+  <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+  <div class="calendar-grid" id="calGrid"></div>
+  <div style="margin-top:20px;">
+    <div class="section-header"><span class="section-title" id="selectedDateLabel">今日课程</span><button class="btn btn-primary btn-sm" onclick="openModal('lesson')">+ 排课</button></div>
+    <div id="dayLessons"></div>
+  </div>
+</div>
+
+<!-- ====== 收费记录 ====== -->
+<div class="page" id="page-payments">
+  <div class="month-filter">
+    <button onclick="prevPayMonth()">◀</button>
+    <span class="month-label" id="payMonth"></span>
+    <button onclick="nextPayMonth()">▶</button>
+    <span style="flex:1"></span>
+    <button class="btn btn-primary btn-sm" onclick="openModal('payment')">+ 记录</button>
+  </div>
+  <div class="summary-row">
+    <div class="summary-item"><div class="sum-num" id="sumCount">0</div><div class="sum-label">笔数</div></div>
+    <div class="summary-item"><div class="sum-num" id="sumTotal">¥0</div><div class="sum-label">合计</div></div>
+  </div>
+  <div id="paymentList"></div>
+</div>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="home"><span class="nav-icon">🏠</span>首页</button>
+  <button class="nav-item" data-page="students"><span class="nav-icon">👥</span>学生</button>
+  <button class="nav-item" data-page="lessons"><span class="nav-icon">📅</span>课程</button>
+  <button class="nav-item" data-page="payments"><span class="nav-icon">💰</span>收费</button>
+</nav>
+
+<!-- ====== Modal: 添加/编辑学生 ====== -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal">
+    <div class="modal-title">👤 添加学生</div>
+    <div class="form-group"><label class="form-label">姓名 *</label><input class="form-input" id="sName" placeholder="学生姓名"></div>
+    <div class="form-group"><label class="form-label">手机号</label><input class="form-input" id="sPhone" placeholder="家长手机号" type="tel"></div>
+    <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="sSubject" placeholder="如：钢琴、美术"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="sNotes" placeholder="其他信息..."></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-block" onclick="closeModal('student')">取消</button>
+      <button class="btn btn-primary btn-block" onclick="saveStudent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Modal: 添加/编辑课程 ====== -->
+<div class="modal-overlay" id="modal-lesson">
+  <div class="modal">
+    <div class="modal-title">📅 安排课程</div>
+    <div class="form-group"><label class="form-label">学生 *</label>
+      <select class="form-select" id="lStudent"><option value="">请选择学生</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">日期 *</label><input class="form-input" type="date" id="lDate"></div>
+      <div class="form-group"><label class="form-label">时间 *</label><input class="form-input" type="time" id="lTime"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">时长(分钟)</label><input class="form-input" type="number" id="lDuration" value="60" min="15" step="15"></div>
+      <div class="form-group"><label class="form-label">课时费(¥)</label><input class="form-input" type="number" id="lFee" value="200" min="0" step="1"></div>
+    </div>
+    <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="lSubject" placeholder="自动从学生信息获取"></div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="lNotes" placeholder="课程备注..."></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-block" onclick="closeModal('lesson')">取消</button>
+      <button class="btn btn-primary btn-block" onclick="saveLesson()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Modal: 添加收费记录 ====== -->
+<div class="modal-overlay" id="modal-payment">
+  <div class="modal">
+    <div class="modal-title">💰 记录收费</div>
+    <div class="form-group"><label class="form-label">学生 *</label>
+      <select class="form-select" id="pStudent"><option value="">请选择学生</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">金额(¥) *</label><input class="form-input" type="number" id="pAmount" placeholder="0" min="0" step="0.01"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">日期</label><input class="form-input" type="date" id="pDate"></div>
+      <div class="form-group"><label class="form-label">方式</label>
+        <select class="form-select" id="pMethod"><option>微信</option><option>支付宝</option><option>现金</option><option>银行转账</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">备注</label><textarea class="form-textarea" id="pNotes" placeholder="如：3月份课时费"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-block" onclick="closeModal('payment')">取消</button>
+      <button class="btn btn-primary btn-block" onclick="savePayment()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Confirm dialog ====== -->
+<div class="confirm-overlay" id="confirmDialog">
+  <div class="confirm-dialog">
+    <div class="cd-title" id="cdTitle">确认删除</div>
+    <div class="cd-msg" id="cdMsg">此操作不可恢复</div>
+    <div class="cd-buttons">
+      <button class="btn btn-outline" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="cdConfirm">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast" class="toast" style="display:none"></div>
+
+</div><!-- /app -->
+
+<script>
+// ========== 数据层 ==========
+const STORAGE_KEY = 'paikebao_data';
+let data = { students:[], lessons:[], payments:[] };
+
+function loadData(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try{ data = JSON.parse(raw); }catch(e){ data = { students:[], lessons:[], payments:[] }; } }
+  else{ data = { students:[], lessons:[], payments:[] }; }
+}
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+// ========== 工具函数 ==========
+function fmtDate(d){ const dt=new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
+function fmtMonth(y,m){ return `${y}年${String(m+1).padStart(2,'0')}月`; }
+function fmtMoney(n){ return '¥'+Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function today(){ return fmtDate(new Date()); }
+function nowMonth(){ const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()}; }
+
+// ========== Toast ==========
+let toastTimer;
+function showToast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.style.display='block';
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ el.style.display='none'; },2000);
+}
+
+// ========== Confirm ==========
+let confirmCb=null;
+function showConfirm(title,msg,cb){
+  document.getElementById('cdTitle').textContent=title;
+  document.getElementById('cdMsg').textContent=msg;
+  document.getElementById('confirmDialog').classList.add('show');
+  confirmCb=cb;
+  document.getElementById('cdConfirm').onclick=()=>{ closeConfirm(); if(confirmCb)confirmCb(); };
+}
+function closeConfirm(){ document.getElementById('confirmDialog').classList.remove('show'); confirmCb=null; }
+
+// ========== Modal ==========
+function openModal(type){
+  const el=document.getElementById('modal-'+type); el.classList.add('show');
+  if(type==='lesson'){ populateStudentSelect('lStudent'); document.getElementById('lDate').value=today(); document.getElementById('lTime').value='10:00'; }
+  if(type==='payment'){ populateStudentSelect('pStudent'); document.getElementById('pDate').value=today(); }
+  if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value=''; }
+}
+function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); }
+
+function populateStudentSelect(selectId){
+  const sel=document.getElementById(selectId);
+  sel.innerHTML='<option value="">请选择学生</option>'+data.students.map(s=>`<option value="${s.id}">${s.name}${s.subject?' - '+s.subject:''}</option>`).join('');
+}
+
+// ====== 保存学生 ======
+function saveStudent(){
+  const name=document.getElementById('sName').value.trim();
+  if(!name){ showToast('请输入学生姓名'); return; }
+  const student={
+    id:genId(), name,
+    phone:document.getElementById('sPhone').value.trim(),
+    subject:document.getElementById('sSubject').value.trim(),
+    notes:document.getElementById('sNotes').value.trim(),
+    createdAt:new Date().toISOString()
+  };
+  data.students.push(student); saveData();
+  closeModal('student'); renderAll(); showToast('学生添加成功 ✓');
+}
+
+// ====== 删除学生 ======
+function deleteStudent(id){
+  const s=data.students.find(s=>s.id===id);
+  showConfirm('删除学生',`确定删除「${s.name}」吗？相关的课程和收费记录不会被删除。`,()=>{
+    data.students=data.students.filter(s=>s.id!==id); saveData();
+    document.getElementById('studentDetail').style.display='none';
+    renderAll(); showToast('学生已删除');
+  });
+}
+
+// ====== 保存课程 ======
+function saveLesson(){
+  const studentId=document.getElementById('lStudent').value;
+  const date=document.getElementById('lDate').value;
+  const time=document.getElementById('lTime').value;
+  if(!studentId){ showToast('请选择学生'); return; }
+  if(!date){ showToast('请选择日期'); return; }
+  if(!time){ showToast('请选择时间'); return; }
+  const s=data.students.find(s=>s.id===studentId);
+  const lesson={
+    id:genId(), studentId, studentName:s?s.name:'未知',
+    date, time, duration:parseInt(document.getElementById('lDuration').value)||60,
+    fee:parseInt(document.getElementById('lFee').value)||0,
+    subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
+    notes:document.getElementById('lNotes').value.trim(),
+    status:'pending' // pending | done | cancelled
+  };
+  data.lessons.push(lesson); saveData();
+  closeModal('lesson'); renderAll(); showToast('课程安排成功 ✓');
+}
+
+// ====== 课程状态变更 ======
+function updateLessonStatus(id,status){
+  const l=data.lessons.find(l=>l.id===id);
+  if(!l)return;
+  if(status==='done' && l.status==='pending'){
+    // 自动生成收费记录
+    data.payments.push({
+      id:genId(), studentId:l.studentId, studentName:l.studentName,
+      amount:l.fee, date:l.date, method:'微信',
+      notes:`${l.date} ${l.subject||''}课时费`,
+      createdAt:new Date().toISOString()
+    });
+  }
+  l.status=status; saveData(); renderAll();
+  showToast(status==='done'?'已标记上课 ✓':status==='cancelled'?'已取消':'状态已更新');
+}
+
+// ====== 删除课程 ======
+function deleteLesson(id){
+  showConfirm('删除课程','确定删除这条课程记录吗？',()=>{
+    data.lessons=data.lessons.filter(l=>l.id!==id); saveData();
+    renderAll(); showToast('课程已删除');
+  });
+}
+
+// ====== 保存收费 ======
+function savePayment(){
+  const studentId=document.getElementById('pStudent').value;
+  const amount=parseFloat(document.getElementById('pAmount').value)||0;
+  if(!studentId){ showToast('请选择学生'); return; }
+  if(amount<=0){ showToast('请输入金额'); return; }
+  const s=data.students.find(s=>s.id===studentId);
+  data.payments.push({
+    id:genId(), studentId, studentName:s?s.name:'未知',
+    amount, date:document.getElementById('pDate').value||today(),
+    method:document.getElementById('pMethod').value,
+    notes:document.getElementById('pNotes').value.trim(),
+    createdAt:new Date().toISOString()
+  });
+  saveData(); closeModal('payment'); renderAll(); showToast('收费记录成功 ✓');
+}
+
+// ====== 删除收费 ======
+function deletePayment(id){
+  showConfirm('删除收费记录','确定删除这条收费记录吗？',()=>{
+    data.payments=data.payments.filter(p=>p.id!==id); saveData();
+    renderAll(); showToast('收费记录已删除');
+  });
+}
+
+// ====== 渲染首页 ======
+function renderHome(){
+  const td=today();
+  document.getElementById('headerDate').textContent=td;
+  document.getElementById('todayDate').textContent=td;
+
+  // 统计
+  const {y,m}=nowMonth();
+  const monthLessons=data.lessons.filter(l=>{
+    const ld=new Date(l.date); return ld.getFullYear()===y && ld.getMonth()===m;
+  });
+  const monthPayments=data.payments.filter(p=>{
+    const pd=new Date(p.date); return pd.getFullYear()===y && pd.getMonth()===m;
+  });
+  document.getElementById('statStudents').textContent=data.students.length;
+  document.getElementById('statLessons').textContent=monthLessons.length;
+  document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
+
+  // 今日课程
+  const todayLessons=data.lessons.filter(l=>l.date===td).sort((a,b)=>a.time.localeCompare(b.time));
+  const container=document.getElementById('todayLessons');
+  if(todayLessons.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>今日暂无课程</p></div>`;
+    return;
+  }
+  container.innerHTML=todayLessons.map(l=>{
+    const s=data.students.find(s=>s.id===l.studentId);
+    const color=avatarColor(l.studentName);
+    return `
+    <div class="list-item" onclick="switchTab('lessons')">
+      <div class="avatar" style="background:${color}">${l.studentName[0]}</div>
+      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
+      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上课':l.status==='cancelled'?'已取消':'待上课'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ====== 渲染学生列表 ======
+function renderStudents(){
+  const q=(document.getElementById('studentSearch').value||'').trim().toLowerCase();
+  const list=data.students.filter(s=>!q||s.name.toLowerCase().includes(q)||(s.subject||'').toLowerCase().includes(q)||(s.phone||'').includes(q));
+  const container=document.getElementById('studentList');
+  document.getElementById('studentDetail').style.display='none';
+  if(list.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">👤</div><p>${q?'没有匹配的学生':'还没有添加学生'}</p></div>`;
+    return;
+  }
+  container.innerHTML=list.map(s=>{
+    const color=avatarColor(s.name);
+    const lessonCount=data.lessons.filter(l=>l.studentId===s.id).length;
+    return `
+    <div class="list-item" onclick="showStudentDetail('${s.id}')">
+      <div class="avatar" style="background:${color}">${s.name[0]}</div>
+      <div class="info"><div class="name">${s.name} ${s.subject?'· '+s.subject:''}</div><div class="meta">${s.phone||'无手机号'} · ${lessonCount}次课程</div></div>
+      <div class="right"><span style="font-size:20px;color:var(--gray-400)">›</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ====== 学生详情 ======
+function showStudentDetail(id){
+  const s=data.students.find(s=>s.id===id); if(!s)return;
+  const lessons=data.lessons.filter(l=>l.studentId===id).sort((a,b)=>b.date.localeCompare(a.date)||b.time.localeCompare(a.time));
+  const payments=data.payments.filter(p=>p.studentId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  const totalPaid=payments.reduce((sum,p)=>sum+p.amount,0);
+  const container=document.getElementById('studentDetail');
+  document.getElementById('studentList').innerHTML='';
+  container.style.display='block';
+  container.innerHTML=`
+    <button class="btn btn-outline btn-sm" onclick="renderStudents()" style="margin-bottom:12px;">← 返回列表</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div class="avatar" style="width:48px;height:48px;font-size:22px;background:${avatarColor(s.name)}">${s.name[0]}</div>
+      <div><div style="font-size:18px;font-weight:700;">${s.name}</div><div style="font-size:13px;color:var(--gray-500);">${s.subject||'未设科目'} · ${s.phone||'无手机号'}</div></div>
+      <span style="flex:1"></span>
+      <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
+    </div>
+    ${s.notes?`<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;">📝 ${s.notes}</div>`:''}
+    <div class="stats-row" style="grid-template-columns:1fr 1fr;">
+      <div class="stat-card"><div class="stat-num" style="color:var(--teal);font-size:22px;">${lessons.length}</div><div class="stat-label">总课次</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--amber);font-size:22px;">${fmtMoney(totalPaid)}</div><div class="stat-label">总收费</div></div>
+    </div>
+    <div class="detail-cards">
+      <div class="detail-card"><div class="dc-header"><span class="dc-title">📅 近期课程</span></div>
+        ${lessons.length===0?'<div style="font-size:13px;color:var(--gray-400);">暂无课程记录</div>':lessons.slice(0,5).map(l=>`<div style="font-size:13px;padding:4px 0;display:flex;justify-content:space-between;"><span>${l.date} ${l.time} ${l.subject||''} · ${l.duration}分钟</span><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>`).join('')}
+      </div>
+      <div class="detail-card"><div class="dc-header"><span class="dc-title">💰 收费记录</span></div>
+        ${payments.length===0?'<div style="font-size:13px;color:var(--gray-400);">暂无收费记录</div>':payments.slice(0,5).map(p=>`<div style="font-size:13px;padding:4px 0;display:flex;justify-content:space-between;"><span>${p.date} · ${p.method}</span><span style="font-weight:600;">${fmtMoney(p.amount)}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// ====== 日历渲染 ======
+let calYear, calMonth, selectedDate;
+function initCalendar(){
+  const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
+  selectedDate=today();
+}
+function renderCalendar(){
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  document.getElementById('calMonth').textContent=fmtMonth(calYear,calMonth);
+  document.getElementById('selectedDateLabel').textContent=selectedDate+' 课程';
+
+  // 收集有课的日期
+  const lessonDates=new Set(data.lessons.map(l=>l.date));
+
+  const grid=document.getElementById('calGrid');
+  let html='';
+  for(let i=0;i<firstDay;i++) html+='<div class="calendar-day empty"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls=['calendar-day'];
+    if(ds===today()) cls.push('today');
+    if(ds===selectedDate) cls.push('selected');
+    if(lessonDates.has(ds)) cls.push('has-lesson');
+    html+=`<div class="${cls.join(' ')}" onclick="selectDate('${ds}')">${d}</div>`;
+  }
+  grid.innerHTML=html;
+
+  // 渲染选中日期的课程
+  renderDayLessons();
+}
+function selectDate(ds){ selectedDate=ds; renderCalendar(); }
+function prevMonth(){
+  if(calMonth===0){ calYear--; calMonth=11; }else{ calMonth--; }
+  renderCalendar();
+}
+function nextMonth(){
+  if(calMonth===11){ calYear++; calMonth=0; }else{ calMonth++; }
+  renderCalendar();
+}
+function renderDayLessons(){
+  const list=data.lessons.filter(l=>l.date===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
+  const container=document.getElementById('dayLessons');
+  if(list.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>当天暂无课程</p></div>`;
+    return;
+  }
+  container.innerHTML=list.map(l=>`
+    <div class="list-item">
+      <div class="avatar" style="background:${avatarColor(l.studentName)}">${l.studentName[0]}</div>
+      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
+      <div class="right">
+        <span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上课':l.status==='cancelled'?'已取消':'待上课'}</span>
+        ${l.status==='pending'?`<div style="margin-top:4px;display:flex;gap:4px;justify-content:flex-end;">
+          <button class="badge badge-success" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','done')">✓ 上课</button>
+          <button class="badge badge-danger" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
+        </div>`:l.status==='done'?`<div style="margin-top:2px;font-size:11px;color:var(--gray-500);">已自动计费</div>`:''}
+        ${l.status==='cancelled'?`<div style="margin-top:2px;"><button class="badge badge-warning" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','pending')">恢复</button></div>`:''}
+        <div style="margin-top:2px;"><button style="font-size:10px;color:var(--gray-400);border:none;background:none;cursor:pointer;" onclick="event.stopPropagation();deleteLesson('${l.id}')">删除</button></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ====== 收费记录渲染 ======
+let payYear, payMonth;
+function initPayments(){
+  const {y,m}=nowMonth(); payYear=y; payMonth=m;
+}
+function renderPayments(){
+  document.getElementById('payMonth').textContent=fmtMonth(payYear,payMonth);
+  const list=data.payments.filter(p=>{
+    const pd=new Date(p.date); return pd.getFullYear()===payYear && pd.getMonth()===payMonth;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt?.localeCompare(a.createdAt));
+  document.getElementById('sumCount').textContent=list.length;
+  document.getElementById('sumTotal').textContent=fmtMoney(list.reduce((s,p)=>s+p.amount,0));
+
+  const container=document.getElementById('paymentList');
+  if(list.length===0){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">💰</div><p>本月暂无收费记录</p></div>`;
+    return;
+  }
+  container.innerHTML=list.map(p=>`
+    <div class="list-item" style="cursor:default;">
+      <div class="avatar" style="background:${avatarColor(p.studentName)}">${p.studentName[0]}</div>
+      <div class="info"><div class="name">${p.studentName}</div><div class="meta">${p.date} · ${p.method}${p.notes?' · '+p.notes:''}</div></div>
+      <div class="right"><div class="amount" style="color:var(--teal)">${fmtMoney(p.amount)}</div>
+        <button style="font-size:10px;color:var(--gray-400);border:none;background:none;cursor:pointer;margin-top:2px;" onclick="event.stopPropagation();deletePayment('${p.id}')">删除</button>
+      </div>
+    </div>
+  `).join('');
+}
+function prevPayMonth(){
+  if(payMonth===0){ payYear--; payMonth=11; }else{ payMonth--; }
+  renderPayments();
+}
+function nextPayMonth(){
+  if(payMonth===11){ payYear++; payMonth=0; }else{ payMonth++; }
+  renderPayments();
+}
+
+// ====== 头像颜色 ======
+const AVATAR_COLORS=['#3B82F6','#EF4444','#10B981','#F59E0B','#8B5CF6','#EC4899','#06B6D4','#F97316','#6366F1','#14B8A6'];
+function avatarColor(name){
+  let hash=0; for(let i=0;i<name.length;i++) hash=name.charCodeAt(i)+((hash<<5)-hash);
+  return AVATAR_COLORS[Math.abs(hash)%AVATAR_COLORS.length];
+}
+
+// ====== Tab切换 ======
+function switchTab(page){
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  document.getElementById('page-'+page).classList.add('active');
+  if(page==='home') renderHome();
+  if(page==='students') renderStudents();
+  if(page==='lessons') renderCalendar();
+  if(page==='payments') renderPayments();
+}
+
+// ====== 全部渲染 ======
+function renderAll(){
+  renderHome();
+  if(document.getElementById('page-students').classList.contains('active')) renderStudents();
+  if(document.getElementById('page-lessons').classList.contains('active')) renderCalendar();
+  if(document.getElementById('page-payments').classList.contains('active')) renderPayments();
+}
+
+// ====== 初始化 ======
+function init(){
+  loadData();
+  initCalendar();
+  initPayments();
+  renderHome();
+
+  // 底部导航事件
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click',()=>{ switchTab(btn.dataset.page); });
+  });
+
+  // 点击遮罩关闭弹窗
+  document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+    overlay.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('show'); });
+  });
+
+  // 选择学生时自动填充科目
+  document.getElementById('lStudent').addEventListener('change',function(){
+    const s=data.students.find(s=>s.id===this.value);
+    if(s) document.getElementById('lSubject').value=s.subject||'';
+  });
+}
+
+init();
+</script>
+</body>
+</html>
