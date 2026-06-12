@@ -1203,13 +1203,20 @@ function getTeacherInfo(){
   let info=null;
   try{ info=JSON.parse(localStorage.getItem('pkbleacher_info')||'null'); }catch(e){}
   if(!info){
-    const name=prompt('请设置您的称呼（家长端展示）：','');
-    if(name===null) return null;
-    const subject=prompt('主要教学科目：','');
+    let name='', phone='';
+    while(!name.trim()){
+      name=prompt('请设置您的称呼（家长端展示）：','');
+      if(name===null) return null;
+      if(!name.trim()) alert('称呼不能为空');
+    }
+    const subject=prompt('主要教学科目（可跳过）：','');
     if(subject===null) return null;
-    const phone=prompt('联系电话（家长端展示）：','');
-    if(phone===null) return null;
-    info={name:name||'老师',subject:subject||'',phone:phone||''};
+    while(!/^1\d{10}$/.test(phone)){
+      phone=prompt('联系电话（11位手机号，家长端展示）：','');
+      if(phone===null) return null;
+      if(!/^1\d{10}$/.test(phone)) alert('请输入正确的11位手机号');
+    }
+    info={name:name.trim(),subject:subject||'',phone};
     localStorage.setItem('pkbleacher_info',JSON.stringify(info));
   }
   return info;
@@ -1230,7 +1237,8 @@ function shareParentLink(){
 
   const payload={
     teacherName:info.name, teacherSubject:info.subject, teacherPhone:info.phone,
-    openSlots, bookedSlots
+    openSlots, bookedSlots,
+    generatedAt: new Date().toISOString()
   };
 
   const json=JSON.stringify(payload);

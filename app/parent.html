@@ -540,7 +540,9 @@ function init(){
   }
   document.getElementById('dataExpired').style.display='none';
   document.getElementById('teacherName').textContent = teacherData.teacherName+'的课程';
-  document.getElementById('teacherSubject').textContent = teacherData.teacherSubject||'';
+  const ts = teacherData.generatedAt ? new Date(teacherData.generatedAt) : null;
+  const tsStr = ts ? `${ts.getMonth()+1}月${ts.getDate()}日 ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}更新` : '';
+  document.getElementById('teacherSubject').textContent = (teacherData.teacherSubject||'') + (tsStr?' · '+tsStr:'');
   document.getElementById('teacherAvatar').textContent = (teacherData.teacherName||'教')[0];
 
   initWeek();
