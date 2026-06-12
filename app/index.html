@@ -338,6 +338,16 @@ body{
 
   <div class="section-header"><span class="section-title">📋 今日课程</span><span style="font-size:13px;color:var(--gray-400)" id="todayDate"></span></div>
   <div id="todayLessons"></div>
+
+  <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--gray-100);">
+    <div class="section-header"><span class="section-title" style="font-size:13px;color:var(--gray-400);">⚙️ 数据管理</span></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="exportData()" style="flex:1;">📥 导出备份</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()" style="flex:1;">📤 导入恢复</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+    </div>
+    <div style="font-size:11px;color:var(--gray-400);margin-top:6px;text-align:center;">数据只存在本机，换手机前记得导出备份</div>
+  </div>
 </div>
 
 <!-- ====== 学生管理 ====== -->
@@ -498,6 +508,29 @@ function loadData(){
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
 function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
+// ====== JSON 导出/导入 ======
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='排课宝备份_'+today()+'.json';
+  a.click(); URL.revokeObjectURL(url); showToast('备份已下载 ✓');
+}
+function importData(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const imported=JSON.parse(e.target.result);
+      if(!imported.students||!imported.lessons||!imported.payments){ throw new Error('格式错误'); }
+      showConfirm('导入数据',`将覆盖当前数据（学生${imported.students.length}人，课程${imported.lessons.length}条，收费${imported.payments.length}笔），确定导入？`,()=>{
+        data=imported; saveData(); renderAll(); showToast('数据已恢复 ✓');
+      });
+    }catch(err){ showToast('⚠️ 文件格式不正确'); }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
 // ========== 工具函数 ==========
 function fmtDate(d){ const dt=new Date(d); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; }
 function fmtMonth(y,m){ return `${y}年${String(m+1).padStart(2,'0')}月`; }
@@ -561,6 +594,7 @@ function deleteStudent(id){
 }
 
 // ====== 保存课程 ======
+function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function saveLesson(){
   const studentId=document.getElementById('lStudent').value;
   const date=document.getElementById('lDate').value;
@@ -568,10 +602,22 @@ function saveLesson(){
   if(!studentId){ showToast('请选择学生'); return; }
   if(!date){ showToast('请选择日期'); return; }
   if(!time){ showToast('请选择时间'); return; }
+  const duration=parseInt(document.getElementById('lDuration').value)||60;
+  const newStart=timeToMin(time), newEnd=newStart+duration;
+  // 冲突检测
+  const conflict=data.lessons.find(l=>{
+    if(l.date!==date || l.status==='cancelled') return false;
+    const ls=timeToMin(l.time), le=ls+l.duration;
+    return newStart<le && newEnd>ls;
+  });
+  if(conflict){
+    showToast(`⚠️ 时间冲突：${conflict.time} 已有「${conflict.studentName}」的课程`);
+    return;
+  }
   const s=data.students.find(s=>s.id===studentId);
   data.lessons.push({
     id:genId(), studentId, studentName:s?s.name:'未知',
-    date, time, duration:parseInt(document.getElementById('lDuration').value)||60,
+    date, time, duration,
     fee:parseInt(document.getElementById('lFee').value)||0,
     subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
     notes:document.getElementById('lNotes').value.trim(),
