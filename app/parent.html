@@ -281,11 +281,11 @@ function parseHash(){
 // }
 
 function fmtDate(d){
-  const dt = new Date(d+'T00:00:00');
+  const dt = (d instanceof Date) ? d : new Date(d+'T00:00:00');
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
 function today(){ return fmtDate(new Date()); }
-function dayOfWeek(d){ return ['周日','周一','周二','周三','周四','周五','周六'][new Date(d+'T00:00:00').getDay()]; }
+function dayOfWeek(d){ return ['周日','周一','周二','周三','周四','周五','周六'][(d instanceof Date?d:new Date(d+'T00:00:00')).getDay()]; }
 const WD=['日','一','二','三','四','五','六'];
 
 function fmtMoney(n){ return '¥'+Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}); }
@@ -443,6 +443,7 @@ function switchTab(tab){
     document.querySelector('.tab-btn:first-child').classList.add('active');
     document.getElementById('slotsContainer').style.display='block';
     document.getElementById('myBookingsContainer').style.display='none';
+    document.getElementById('weekStrip').parentElement.style.display='';
     document.getElementById('slotDateLabel').style.display='';
     document.getElementById('slotCount').style.display='';
     renderSlots();
@@ -450,6 +451,7 @@ function switchTab(tab){
     document.querySelector('.tab-btn:last-child').classList.add('active');
     document.getElementById('slotsContainer').style.display='none';
     document.getElementById('myBookingsContainer').style.display='block';
+    document.getElementById('weekStrip').parentElement.style.display='none';
     document.getElementById('slotDateLabel').style.display='none';
     document.getElementById('slotCount').style.display='none';
     renderMyBookings();
@@ -529,7 +531,7 @@ function init(){
   teacherData = parseHash();
   if(!teacherData){
     document.getElementById('dataExpired').style.display='block';
-    document.getElementById('weekStrip').style.display='none';
+    document.getElementById('weekStrip').parentElement.style.display='none';
     document.getElementById('slotsContainer').style.display='none';
     document.getElementById('slotDateLabel').style.display='none';
     document.getElementById('slotCount').style.display='none';
@@ -545,10 +547,6 @@ function init(){
   renderWeekStrip();
   renderSlots();
   renderMyBookings();
-
-  // Get week range for display
-  const we = new Date(weekStart+'T00:00:00');
-  we.setDate(we.getDate()+6);
   document.getElementById('slotCount').textContent=
     `共${(teacherData.openSlots||[]).length}个可约时段`;
 }
