@@ -58,9 +58,7 @@ body{
 .stat-card:nth-child(3) .stat-num{color:var(--amber);}
 
 /* Section */
-.section-header{
-  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
-}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
 .section-title{font-size:16px;font-weight:700;}
 
 /* Quick actions */
@@ -74,7 +72,7 @@ body{
 .quick-btn:active{background:var(--gray-50);transform:scale(.97);}
 .quick-btn .icon{font-size:24px;}
 
-/* List items */
+/* List items (通用) */
 .list-item{
   display:flex;align-items:center;padding:14px;background:var(--gray-50);
   border-radius:var(--radius-sm);margin-bottom:8px;gap:12px;
@@ -90,7 +88,6 @@ body{
 .list-item .info .meta{font-size:12px;color:var(--gray-500);margin-top:2px;}
 .list-item .right{text-align:right;flex-shrink:0;}
 .list-item .right .amount{font-size:15px;font-weight:700;}
-.list-item .right .status{font-size:11px;padding:2px 8px;border-radius:10px;margin-top:2px;}
 
 /* Status badges */
 .badge{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:600;display:inline-block;}
@@ -100,9 +97,7 @@ body{
 .badge-info{background:var(--blue-light);color:#1E40AF;}
 
 /* Empty state */
-.empty{
-  text-align:center;padding:48px 20px;color:var(--gray-400);
-}
+.empty{text-align:center;padding:48px 20px;color:var(--gray-400);}
 .empty .empty-icon{font-size:48px;margin-bottom:12px;}
 .empty p{font-size:14px;}
 
@@ -148,32 +143,101 @@ body{
 .form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-/* Calendar */
-.calendar{}
-.calendar-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
-.calendar-nav button{
-  background:none;border:none;font-size:20px;cursor:pointer;padding:6px 10px;
-  color:var(--gray-600);border-radius:8px;
+/* ====== Week Strip (课程页顶部) ====== */
+.week-strip-wrap{display:flex;align-items:center;gap:4px;margin-bottom:16px;}
+.week-strip-wrap .ws-arrow{
+  flex-shrink:0;width:32px;height:56px;display:flex;align-items:center;justify-content:center;
+  border:none;background:none;font-size:16px;color:var(--gray-400);cursor:pointer;
+  border-radius:10px;
 }
-.calendar-nav button:active{background:var(--gray-100);}
-.calendar-month{font-size:16px;font-weight:700;}
-.calendar-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:8px;}
-.calendar-weekdays span{font-size:11px;color:var(--gray-400);padding:6px 0;}
-.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.calendar-day{
-  aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  border-radius:50%;font-size:14px;cursor:pointer;position:relative;
-  transition:background .15s;
+.week-strip-wrap .ws-arrow:active{background:var(--gray-100);}
+.week-strip{
+  flex:1;display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 0;
 }
-.calendar-day:active{background:var(--gray-100);}
-.calendar-day.today{background:var(--teal);color:#fff;font-weight:700;}
-.calendar-day.has-lesson::after{
-  content:'';width:5px;height:5px;background:var(--teal);border-radius:50%;
-  position:absolute;bottom:4px;
+.week-strip::-webkit-scrollbar{display:none;}
+.week-day{
+  flex-shrink:0;width:calc((100% - 30px) / 7);min-width:42px;
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px 4px;border-radius:14px;cursor:pointer;border:2px solid transparent;
+  transition:all .15s;gap:2px;
 }
-.calendar-day.today::after{background:#fff;}
-.calendar-day.empty{cursor:default;}
-.calendar-day.selected{background:var(--teal-light);color:var(--teal-dark);font-weight:700;}
+.week-day:active{transform:scale(.95);}
+.week-day .wd-label{font-size:11px;color:var(--gray-400);font-weight:500;}
+.week-day .wd-num{font-size:17px;font-weight:700;color:var(--gray-700);line-height:1;}
+.week-day .wd-dot{width:4px;height:4px;border-radius:50%;margin-top:1px;}
+.week-day.today{border-color:var(--teal);background:var(--teal-bg);}
+.week-day.today .wd-label{color:var(--teal);}
+.week-day.today .wd-num{color:var(--teal);}
+.week-day.selected{background:var(--teal);border-color:var(--teal);}
+.week-day.selected .wd-label{color:var(--teal-light);}
+.week-day.selected .wd-num{color:#fff;}
+.week-day.has-lesson .wd-dot{background:var(--teal);}
+.week-day.selected .wd-dot{background:#fff;}
+
+/* ====== Day header ====== */
+.day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.day-header .dh-label{font-size:18px;font-weight:700;}
+.day-header .dh-label small{font-size:13px;color:var(--gray-400);font-weight:400;margin-left:6px;}
+.btn-today{
+  font-size:12px;padding:6px 12px;border-radius:14px;border:1px solid var(--gray-300);
+  background:#fff;color:var(--gray-600);cursor:pointer;font-weight:500;
+}
+.btn-today:active{background:var(--gray-50);}
+
+/* ====== Course Card (时间线卡片) ====== */
+.course-card{
+  display:flex;margin-bottom:14px;border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;background:#fff;
+}
+.course-card .cc-bar{width:4px;flex-shrink:0;}
+.course-card .cc-body{flex:1;padding:16px;}
+.course-card .cc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.course-card .cc-time-block{display:flex;align-items:baseline;gap:4px;}
+.course-card .cc-time{font-size:22px;font-weight:800;letter-spacing:-.5px;}
+.course-card .cc-period{font-size:12px;color:var(--gray-400);}
+.course-card .cc-student-name{font-size:15px;font-weight:600;}
+.course-card .cc-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.course-card .cc-tag{
+  font-size:12px;padding:3px 10px;border-radius:10px;background:var(--gray-100);color:var(--gray-600);
+}
+.course-card .cc-actions{display:flex;gap:8px;}
+.course-card .cc-actions button{flex:1;padding:10px 0;font-size:13px;font-weight:600;border-radius:8px;cursor:pointer;border:none;transition:all .15s;}
+.course-card .cc-actions button:active{transform:scale(.97);}
+.course-card .cc-actions .act-done{background:var(--green);color:#fff;}
+.course-card .cc-actions .act-cancel{background:#fff;color:var(--gray-500);border:1px solid var(--gray-200);}
+.course-card .cc-actions .act-restore{background:var(--amber);color:#fff;}
+.course-card .cc-done-label{display:flex;align-items:center;gap:6px;color:var(--green);font-weight:600;font-size:13px;margin-top:6px;}
+.course-card .cc-del{font-size:11px;color:var(--gray-400);border:none;background:none;cursor:pointer;padding:4px 0;margin-top:6px;}
+.course-card.done{background:var(--green-light);opacity:.85;}
+.course-card.cancelled{background:var(--gray-50);opacity:.6;}
+
+/* ====== Month panel (可折叠月历) ====== */
+.month-toggle-btn{
+  display:flex;align-items:center;gap:4px;font-size:12px;color:var(--gray-400);
+  cursor:pointer;padding:4px 8px;border-radius:6px;border:none;background:none;
+}
+.month-toggle-btn:active{background:var(--gray-100);}
+.month-panel{display:none;margin-bottom:16px;background:var(--gray-50);border-radius:var(--radius);padding:14px;}
+.month-panel.show{display:block;}
+.month-panel .mp-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.month-panel .mp-nav button{background:none;border:none;font-size:16px;cursor:pointer;color:var(--gray-600);padding:4px 8px;border-radius:6px;}
+.month-panel .mp-nav button:active{background:var(--gray-100);}
+.month-panel .mp-label{font-size:14px;font-weight:700;}
+.month-panel .mp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;}
+.month-panel .mp-grid .mp-dow{font-size:10px;color:var(--gray-400);padding:4px 0;}
+.month-panel .mp-grid .mp-day{
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;font-size:13px;cursor:pointer;position:relative;
+}
+.month-panel .mp-grid .mp-day:active{background:var(--gray-200);}
+.month-panel .mp-grid .mp-day.today{background:var(--teal);color:#fff;font-weight:700;}
+.month-panel .mp-grid .mp-day.selected{background:var(--teal-light);color:var(--teal-dark);font-weight:700;}
+.month-panel .mp-grid .mp-day.has::after{
+  content:'';width:4px;height:4px;background:var(--teal);border-radius:50%;position:absolute;bottom:2px;
+}
+.month-panel .mp-grid .mp-day.today::after{background:#fff;}
+.month-panel .mp-grid .mp-day.other{color:var(--gray-300);cursor:default;}
 
 /* Bottom nav */
 .bottom-nav{
@@ -192,9 +256,7 @@ body{
 .nav-item.active{color:var(--teal);font-weight:600;}
 
 /* Search */
-.search-box{
-  display:flex;gap:8px;margin-bottom:16px;
-}
+.search-box{display:flex;gap:8px;margin-bottom:16px;}
 .search-input{
   flex:1;padding:10px 14px;border:1px solid var(--gray-300);border-radius:var(--radius-sm);
   font-size:14px;outline:none;background:var(--gray-50);
@@ -203,9 +265,7 @@ body{
 
 /* Student detail */
 .detail-cards{margin-top:16px;}
-.detail-card{
-  background:var(--gray-50);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;
-}
+.detail-card{background:var(--gray-50);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;}
 .detail-card .dc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
 .detail-card .dc-title{font-size:13px;color:var(--gray-500);}
 
@@ -213,8 +273,7 @@ body{
 .toast{
   position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:200;
   background:var(--gray-900);color:#fff;padding:10px 24px;border-radius:20px;
-  font-size:14px;animation:fadeIn .3s ease;
-  pointer-events:none;
+  font-size:14px;animation:fadeIn .3s ease;pointer-events:none;
 }
 @keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
@@ -233,7 +292,7 @@ body{
 .confirm-dialog .cd-buttons{display:flex;gap:10px;}
 .confirm-dialog .cd-buttons .btn{flex:1;}
 
-/* Month picker */
+/* Month filter (收费页) */
 .month-filter{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
 .month-filter button{background:none;border:none;font-size:18px;cursor:pointer;color:var(--gray-600);}
 .month-filter .month-label{font-size:15px;font-weight:600;min-width:100px;text-align:center;}
@@ -241,6 +300,13 @@ body{
 .summary-item{text-align:center;}
 .summary-item .sum-num{font-size:20px;font-weight:700;color:var(--teal);}
 .summary-item .sum-label{font-size:11px;color:var(--gray-500);}
+
+/* Home course list (mini version) */
+.home-lesson-item{
+  display:flex;align-items:center;padding:12px;background:var(--gray-50);
+  border-radius:var(--radius-sm);margin-bottom:8px;gap:12px;cursor:pointer;
+}
+.home-lesson-item:active{background:var(--gray-100);}
 
 @media(min-width:480px){
   .app{border-left:1px solid var(--gray-200);border-right:1px solid var(--gray-200);}
@@ -284,19 +350,38 @@ body{
   <div id="studentDetail" style="display:none"></div>
 </div>
 
-<!-- ====== 课程安排 ====== -->
+<!-- ====== 课程安排 (新版：周视图 + 时间线卡片) ====== -->
 <div class="page" id="page-lessons">
-  <div class="calendar-nav">
-    <button onclick="prevMonth()">◀</button>
-    <span class="calendar-month" id="calMonth"></span>
-    <button onclick="nextMonth()">▶</button>
+  <!-- 横向周视图 -->
+  <div class="week-strip-wrap">
+    <button class="ws-arrow" onclick="shiftWeek(-7)" title="上一周">◀</button>
+    <div class="week-strip" id="weekStrip"></div>
+    <button class="ws-arrow" onclick="shiftWeek(7)" title="下一周">▶</button>
   </div>
-  <div class="calendar-weekdays"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
-  <div class="calendar-grid" id="calGrid"></div>
-  <div style="margin-top:20px;">
-    <div class="section-header"><span class="section-title" id="selectedDateLabel">今日课程</span><button class="btn btn-primary btn-sm" onclick="openModal('lesson')">+ 排课</button></div>
-    <div id="dayLessons"></div>
+
+  <!-- 选中日标题 + 今日按钮 + 月历切换 -->
+  <div class="day-header">
+    <span class="dh-label" id="dayLabel"></span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn-today" onclick="goToday()">今天</button>
+      <button class="month-toggle-btn" onclick="toggleMonthPanel()" id="monthToggleBtn">📅 月历 ▾</button>
+    </div>
   </div>
+
+  <!-- 可折叠月历 -->
+  <div class="month-panel" id="monthPanel">
+    <div class="mp-nav">
+      <button onclick="changePanelMonth(-1)">◀</button>
+      <span class="mp-label" id="mpLabel"></span>
+      <button onclick="changePanelMonth(1)">▶</button>
+      <span style="flex:1"></span>
+      <button style="font-size:11px;color:var(--teal);border:none;background:none;cursor:pointer;" onclick="goToday();toggleMonthPanel()">回今天</button>
+    </div>
+    <div class="mp-grid" id="mpGrid"></div>
+  </div>
+
+  <!-- 当日课程列表 -->
+  <div id="dayLessons"></div>
 </div>
 
 <!-- ====== 收费记录 ====== -->
@@ -323,7 +408,7 @@ body{
   <button class="nav-item" data-page="payments"><span class="nav-icon">💰</span>收费</button>
 </nav>
 
-<!-- ====== Modal: 添加/编辑学生 ====== -->
+<!-- ====== Modal: 添加学生 ====== -->
 <div class="modal-overlay" id="modal-student">
   <div class="modal">
     <div class="modal-title">👤 添加学生</div>
@@ -338,7 +423,7 @@ body{
   </div>
 </div>
 
-<!-- ====== Modal: 添加/编辑课程 ====== -->
+<!-- ====== Modal: 添加课程 ====== -->
 <div class="modal-overlay" id="modal-lesson">
   <div class="modal">
     <div class="modal-title">📅 安排课程</div>
@@ -396,7 +481,6 @@ body{
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast" class="toast" style="display:none"></div>
 
 </div><!-- /app -->
@@ -412,7 +496,6 @@ function loadData(){
   else{ data = { students:[], lessons:[], payments:[] }; }
 }
 function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-
 function genId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 
 // ========== 工具函数 ==========
@@ -421,6 +504,8 @@ function fmtMonth(y,m){ return `${y}年${String(m+1).padStart(2,'0')}月`; }
 function fmtMoney(n){ return '¥'+Number(n).toLocaleString('zh-CN',{minimumFractionDigits:0,maximumFractionDigits:0}); }
 function today(){ return fmtDate(new Date()); }
 function nowMonth(){ const d=new Date(); return {y:d.getFullYear(),m:d.getMonth()}; }
+function dayOfWeek(d){ const dt=new Date(d+'T00:00:00'); return ['周日','周一','周二','周三','周四','周五','周六'][dt.getDay()]; }
+const WD_LABELS=['日','一','二','三','四','五','六'];
 
 // ========== Toast ==========
 let toastTimer;
@@ -443,12 +528,11 @@ function closeConfirm(){ document.getElementById('confirmDialog').classList.remo
 // ========== Modal ==========
 function openModal(type){
   const el=document.getElementById('modal-'+type); el.classList.add('show');
-  if(type==='lesson'){ populateStudentSelect('lStudent'); document.getElementById('lDate').value=today(); document.getElementById('lTime').value='10:00'; }
+  if(type==='lesson'){ populateStudentSelect('lStudent'); document.getElementById('lDate').value=selectedDate; document.getElementById('lTime').value='10:00'; }
   if(type==='payment'){ populateStudentSelect('pStudent'); document.getElementById('pDate').value=today(); }
   if(type==='student'){ document.getElementById('sName').value='';document.getElementById('sPhone').value='';document.getElementById('sSubject').value='';document.getElementById('sNotes').value=''; }
 }
 function closeModal(type){ document.getElementById('modal-'+type).classList.remove('show'); }
-
 function populateStudentSelect(selectId){
   const sel=document.getElementById(selectId);
   sel.innerHTML='<option value="">请选择学生</option>'+data.students.map(s=>`<option value="${s.id}">${s.name}${s.subject?' - '+s.subject:''}</option>`).join('');
@@ -458,18 +542,15 @@ function populateStudentSelect(selectId){
 function saveStudent(){
   const name=document.getElementById('sName').value.trim();
   if(!name){ showToast('请输入学生姓名'); return; }
-  const student={
+  data.students.push({
     id:genId(), name,
     phone:document.getElementById('sPhone').value.trim(),
     subject:document.getElementById('sSubject').value.trim(),
     notes:document.getElementById('sNotes').value.trim(),
     createdAt:new Date().toISOString()
-  };
-  data.students.push(student); saveData();
-  closeModal('student'); renderAll(); showToast('学生添加成功 ✓');
+  });
+  saveData(); closeModal('student'); renderAll(); showToast('学生添加成功 ✓');
 }
-
-// ====== 删除学生 ======
 function deleteStudent(id){
   const s=data.students.find(s=>s.id===id);
   showConfirm('删除学生',`确定删除「${s.name}」吗？相关的课程和收费记录不会被删除。`,()=>{
@@ -488,16 +569,15 @@ function saveLesson(){
   if(!date){ showToast('请选择日期'); return; }
   if(!time){ showToast('请选择时间'); return; }
   const s=data.students.find(s=>s.id===studentId);
-  const lesson={
+  data.lessons.push({
     id:genId(), studentId, studentName:s?s.name:'未知',
     date, time, duration:parseInt(document.getElementById('lDuration').value)||60,
     fee:parseInt(document.getElementById('lFee').value)||0,
     subject:document.getElementById('lSubject').value.trim()||(s?s.subject:''),
     notes:document.getElementById('lNotes').value.trim(),
-    status:'pending' // pending | done | cancelled
-  };
-  data.lessons.push(lesson); saveData();
-  closeModal('lesson'); renderAll(); showToast('课程安排成功 ✓');
+    status:'pending'
+  });
+  saveData(); closeModal('lesson'); renderAll(); showToast('课程安排成功 ✓');
 }
 
 // ====== 课程状态变更 ======
@@ -505,7 +585,6 @@ function updateLessonStatus(id,status){
   const l=data.lessons.find(l=>l.id===id);
   if(!l)return;
   if(status==='done' && l.status==='pending'){
-    // 自动生成收费记录
     data.payments.push({
       id:genId(), studentId:l.studentId, studentName:l.studentName,
       amount:l.fee, date:l.date, method:'微信',
@@ -514,10 +593,8 @@ function updateLessonStatus(id,status){
     });
   }
   l.status=status; saveData(); renderAll();
-  showToast(status==='done'?'已标记上课 ✓':status==='cancelled'?'已取消':'状态已更新');
+  showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':'状态已更新');
 }
-
-// ====== 删除课程 ======
 function deleteLesson(id){
   showConfirm('删除课程','确定删除这条课程记录吗？',()=>{
     data.lessons=data.lessons.filter(l=>l.id!==id); saveData();
@@ -525,7 +602,7 @@ function deleteLesson(id){
   });
 }
 
-// ====== 保存收费 ======
+// ====== 保存/删除收费 ======
 function savePayment(){
   const studentId=document.getElementById('pStudent').value;
   const amount=parseFloat(document.getElementById('pAmount').value)||0;
@@ -541,8 +618,6 @@ function savePayment(){
   });
   saveData(); closeModal('payment'); renderAll(); showToast('收费记录成功 ✓');
 }
-
-// ====== 删除收费 ======
 function deletePayment(id){
   showConfirm('删除收费记录','确定删除这条收费记录吗？',()=>{
     data.payments=data.payments.filter(p=>p.id!==id); saveData();
@@ -555,20 +630,13 @@ function renderHome(){
   const td=today();
   document.getElementById('headerDate').textContent=td;
   document.getElementById('todayDate').textContent=td;
-
-  // 统计
   const {y,m}=nowMonth();
-  const monthLessons=data.lessons.filter(l=>{
-    const ld=new Date(l.date); return ld.getFullYear()===y && ld.getMonth()===m;
-  });
-  const monthPayments=data.payments.filter(p=>{
-    const pd=new Date(p.date); return pd.getFullYear()===y && pd.getMonth()===m;
-  });
+  const monthLessons=data.lessons.filter(l=>{const ld=new Date(l.date);return ld.getFullYear()===y&&ld.getMonth()===m;});
+  const monthPayments=data.payments.filter(p=>{const pd=new Date(p.date);return pd.getFullYear()===y&&pd.getMonth()===m;});
   document.getElementById('statStudents').textContent=data.students.length;
   document.getElementById('statLessons').textContent=monthLessons.length;
   document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
 
-  // 今日课程
   const todayLessons=data.lessons.filter(l=>l.date===td).sort((a,b)=>a.time.localeCompare(b.time));
   const container=document.getElementById('todayLessons');
   if(todayLessons.length===0){
@@ -576,15 +644,21 @@ function renderHome(){
     return;
   }
   container.innerHTML=todayLessons.map(l=>{
-    const s=data.students.find(s=>s.id===l.studentId);
     const color=avatarColor(l.studentName);
+    const endTime=calcEndTime(l.time,l.duration);
     return `
-    <div class="list-item" onclick="switchTab('lessons')">
+    <div class="home-lesson-item" onclick="switchTab('lessons')">
       <div class="avatar" style="background:${color}">${l.studentName[0]}</div>
-      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
-      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上课':l.status==='cancelled'?'已取消':'待上课'}</span></div>
+      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time}-${endTime} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
+      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>
     </div>`;
   }).join('');
+}
+
+function calcEndTime(time,duration){
+  const [h,m]=time.split(':').map(Number);
+  const total=h*60+m+duration;
+  return `${String(Math.floor(total/60)%24).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;
 }
 
 // ====== 渲染学生列表 ======
@@ -642,68 +716,175 @@ function showStudentDetail(id){
   `;
 }
 
-// ====== 日历渲染 ======
-let calYear, calMonth, selectedDate;
-function initCalendar(){
-  const now=new Date(); calYear=now.getFullYear(); calMonth=now.getMonth();
-  selectedDate=today();
+// ====== 课程页：周视图 + 时间线卡片 ======
+let selectedDate = today();
+let weekStart = null; // 当前周起始日（周日）
+let panelYear, panelMonth; // 月历面板的状态
+
+function initWeek(){
+  const d = new Date(selectedDate+'T00:00:00');
+  d.setDate(d.getDate() - d.getDay()); // 回到周日
+  weekStart = fmtDate(d);
 }
-function renderCalendar(){
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  document.getElementById('calMonth').textContent=fmtMonth(calYear,calMonth);
-  document.getElementById('selectedDateLabel').textContent=selectedDate+' 课程';
+function initPanelMonth(){
+  const d = new Date(selectedDate+'T00:00:00');
+  panelYear = d.getFullYear(); panelMonth = d.getMonth();
+}
 
-  // 收集有课的日期
-  const lessonDates=new Set(data.lessons.map(l=>l.date));
+function shiftWeek(days){
+  const d = new Date(weekStart+'T00:00:00');
+  d.setDate(d.getDate() + days);
+  weekStart = fmtDate(d);
+  if(!isDateInWeek(selectedDate, weekStart)){
+    // 如果选中日期不在当前周，跟着跳
+    const sd = new Date(selectedDate+'T00:00:00');
+    sd.setDate(sd.getDate() + days);
+    selectedDate = fmtDate(sd);
+  }
+  renderLessons();
+}
 
-  const grid=document.getElementById('calGrid');
-  let html='';
-  for(let i=0;i<firstDay;i++) html+='<div class="calendar-day empty"></div>';
+function isDateInWeek(ds, ws){
+  const d = new Date(ds+'T00:00:00');
+  const w = new Date(ws+'T00:00:00');
+  const diff = (d - w) / 86400000;
+  return diff >= 0 && diff < 7;
+}
+
+function goToday(){
+  selectedDate = today();
+  const d = new Date(selectedDate+'T00:00:00');
+  d.setDate(d.getDate() - d.getDay());
+  weekStart = fmtDate(d);
+  renderLessons();
+}
+
+function selectDay(ds){
+  selectedDate = ds;
+  if(!isDateInWeek(ds, weekStart)){
+    const d = new Date(ds+'T00:00:00');
+    d.setDate(d.getDate() - d.getDay());
+    weekStart = fmtDate(d);
+  }
+  renderLessons();
+}
+
+function toggleMonthPanel(){
+  const panel = document.getElementById('monthPanel');
+  const btn = document.getElementById('monthToggleBtn');
+  panel.classList.toggle('show');
+  btn.textContent = panel.classList.contains('show') ? '📅 月历 ▴' : '📅 月历 ▾';
+  if(panel.classList.contains('show')){
+    initPanelMonth();
+    renderMonthPanel();
+  }
+}
+
+function changePanelMonth(dir){
+  if(dir===1){ if(panelMonth===11){panelYear++;panelMonth=0;}else{panelMonth++;} }
+  else{ if(panelMonth===0){panelYear--;panelMonth=11;}else{panelMonth--;} }
+  renderMonthPanel();
+}
+
+function renderMonthPanel(){
+  document.getElementById('mpLabel').textContent = fmtMonth(panelYear, panelMonth);
+  const lessonDates = new Set(data.lessons.map(l=>l.date));
+  const daysInMonth = new Date(panelYear, panelMonth+1, 0).getDate();
+  const firstDay = new Date(panelYear, panelMonth, 1).getDay();
+  const td = today();
+  let html = '';
+  WD_LABELS.forEach(w=>{ html+=`<div class="mp-dow">${w}</div>`; });
+  for(let i=0;i<firstDay;i++) html+='<div class="mp-day other"></div>';
   for(let d=1;d<=daysInMonth;d++){
-    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const cls=['calendar-day'];
-    if(ds===today()) cls.push('today');
+    const ds = `${panelYear}-${String(panelMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cls = ['mp-day'];
+    if(ds===td) cls.push('today');
+    if(ds===selectedDate) cls.push('selected');
+    if(lessonDates.has(ds)) cls.push('has');
+    html+=`<div class="${cls.join(' ')}" onclick="selectDayFromPanel('${ds}')">${d}</div>`;
+  }
+  document.getElementById('mpGrid').innerHTML = html;
+}
+
+function selectDayFromPanel(ds){
+  selectedDate = ds;
+  const d = new Date(ds+'T00:00:00');
+  d.setDate(d.getDate() - d.getDay());
+  weekStart = fmtDate(d);
+  document.getElementById('monthPanel').classList.remove('show');
+  document.getElementById('monthToggleBtn').textContent = '📅 月历 ▾';
+  renderLessons();
+}
+
+function renderWeekStrip(){
+  const lessonDates = new Set(data.lessons.map(l=>l.date));
+  const td = today();
+  const wd = new Date(weekStart+'T00:00:00');
+  let html = '';
+  for(let i=0;i<7;i++){
+    const ds = fmtDate(wd);
+    const cls = ['week-day'];
+    if(ds===td) cls.push('today');
     if(ds===selectedDate) cls.push('selected');
     if(lessonDates.has(ds)) cls.push('has-lesson');
-    html+=`<div class="${cls.join(' ')}" onclick="selectDate('${ds}')">${d}</div>`;
+    html += `<div class="${cls.join(' ')}" onclick="selectDay('${ds}')">
+      <span class="wd-label">${WD_LABELS[wd.getDay()]}</span>
+      <span class="wd-num">${wd.getDate()}</span>
+      <span class="wd-dot"></span>
+    </div>`;
+    wd.setDate(wd.getDate()+1);
   }
-  grid.innerHTML=html;
+  document.getElementById('weekStrip').innerHTML = html;
+}
 
-  // 渲染选中日期的课程
-  renderDayLessons();
-}
-function selectDate(ds){ selectedDate=ds; renderCalendar(); }
-function prevMonth(){
-  if(calMonth===0){ calYear--; calMonth=11; }else{ calMonth--; }
-  renderCalendar();
-}
-function nextMonth(){
-  if(calMonth===11){ calYear++; calMonth=0; }else{ calMonth++; }
-  renderCalendar();
-}
 function renderDayLessons(){
-  const list=data.lessons.filter(l=>l.date===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
-  const container=document.getElementById('dayLessons');
+  const list = data.lessons.filter(l=>l.date===selectedDate).sort((a,b)=>a.time.localeCompare(b.time));
+  const container = document.getElementById('dayLessons');
   if(list.length===0){
-    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>当天暂无课程</p></div>`;
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>当天暂无课程</p><button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openModal('lesson')">+ 安排课程</button></div>`;
     return;
   }
-  container.innerHTML=list.map(l=>`
-    <div class="list-item">
-      <div class="avatar" style="background:${avatarColor(l.studentName)}">${l.studentName[0]}</div>
-      <div class="info"><div class="name">${l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
-      <div class="right">
-        <span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上课':l.status==='cancelled'?'已取消':'待上课'}</span>
-        ${l.status==='pending'?`<div style="margin-top:4px;display:flex;gap:4px;justify-content:flex-end;">
-          <button class="badge badge-success" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','done')">✓ 上课</button>
-          <button class="badge badge-danger" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
-        </div>`:l.status==='done'?`<div style="margin-top:2px;font-size:11px;color:var(--gray-500);">已自动计费</div>`:''}
-        ${l.status==='cancelled'?`<div style="margin-top:2px;"><button class="badge badge-warning" style="cursor:pointer;border:none;" onclick="event.stopPropagation();updateLessonStatus('${l.id}','pending')">恢复</button></div>`:''}
-        <div style="margin-top:2px;"><button style="font-size:10px;color:var(--gray-400);border:none;background:none;cursor:pointer;" onclick="event.stopPropagation();deleteLesson('${l.id}')">删除</button></div>
+  container.innerHTML = list.map(l=>{
+    const color = avatarColor(l.studentName);
+    const endTime = calcEndTime(l.time, l.duration);
+    const cls = l.status==='done'?'done':l.status==='cancelled'?'cancelled':'';
+    return `
+    <div class="course-card ${cls}">
+      <div class="cc-bar" style="background:${color}"></div>
+      <div class="cc-body">
+        <div class="cc-top">
+          <div class="cc-time-block">
+            <span class="cc-time">${l.time}</span>
+            <span class="cc-period">- ${endTime}</span>
+            ${l.status==='done'?'<span style="font-size:12px;color:var(--green);margin-left:4px;">✓</span>':''}
+            ${l.status==='cancelled'?'<span style="font-size:12px;color:var(--gray-400);margin-left:4px;">✕</span>':''}
+          </div>
+          <span class="cc-student-name">${l.studentName}</span>
+        </div>
+        <div class="cc-tags">
+          ${l.subject?`<span class="cc-tag">📖 ${l.subject}</span>`:''}
+          <span class="cc-tag">⏱ ${l.duration}分钟</span>
+          <span class="cc-tag">💰 ${fmtMoney(l.fee)}</span>
+        </div>
+        ${l.status==='pending'?`
+        <div class="cc-actions">
+          <button class="act-done" onclick="updateLessonStatus('${l.id}','done')">✓ 标记完成</button>
+          <button class="act-cancel" onclick="updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
+        </div>`:l.status==='done'?`
+        <div class="cc-done-label">✅ 已完成 · 已自动入账</div>`:`
+        <div style="margin-bottom:8px;"></div>
+        <div class="cc-actions"><button class="act-restore" onclick="updateLessonStatus('${l.id}','pending')">↩ 恢复待上</button></div>`}
+        <button class="cc-del" onclick="deleteLesson('${l.id}')">删除</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+function renderLessons(){
+  const ds = new Date(selectedDate+'T00:00:00');
+  document.getElementById('dayLabel').innerHTML = `${ds.getMonth()+1}月${ds.getDate()}日 <small>${dayOfWeek(selectedDate)}</small>`;
+  renderWeekStrip();
+  renderDayLessons();
 }
 
 // ====== 收费记录渲染 ======
@@ -714,11 +895,10 @@ function initPayments(){
 function renderPayments(){
   document.getElementById('payMonth').textContent=fmtMonth(payYear,payMonth);
   const list=data.payments.filter(p=>{
-    const pd=new Date(p.date); return pd.getFullYear()===payYear && pd.getMonth()===payMonth;
-  }).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt?.localeCompare(a.createdAt));
+    const pd=new Date(p.date);return pd.getFullYear()===payYear&&pd.getMonth()===payMonth;
+  }).sort((a,b)=>b.date.localeCompare(a.date)||(b.createdAt||'').localeCompare(a.createdAt||''));
   document.getElementById('sumCount').textContent=list.length;
   document.getElementById('sumTotal').textContent=fmtMoney(list.reduce((s,p)=>s+p.amount,0));
-
   const container=document.getElementById('paymentList');
   if(list.length===0){
     container.innerHTML=`<div class="empty"><div class="empty-icon">💰</div><p>本月暂无收费记录</p></div>`;
@@ -734,19 +914,13 @@ function renderPayments(){
     </div>
   `).join('');
 }
-function prevPayMonth(){
-  if(payMonth===0){ payYear--; payMonth=11; }else{ payMonth--; }
-  renderPayments();
-}
-function nextPayMonth(){
-  if(payMonth===11){ payYear++; payMonth=0; }else{ payMonth++; }
-  renderPayments();
-}
+function prevPayMonth(){if(payMonth===0){payYear--;payMonth=11;}else{payMonth--;}renderPayments();}
+function nextPayMonth(){if(payMonth===11){payYear++;payMonth=0;}else{payMonth++;}renderPayments();}
 
 // ====== 头像颜色 ======
 const AVATAR_COLORS=['#3B82F6','#EF4444','#10B981','#F59E0B','#8B5CF6','#EC4899','#06B6D4','#F97316','#6366F1','#14B8A6'];
 function avatarColor(name){
-  let hash=0; for(let i=0;i<name.length;i++) hash=name.charCodeAt(i)+((hash<<5)-hash);
+  let hash=0;for(let i=0;i<name.length;i++)hash=name.charCodeAt(i)+((hash<<5)-hash);
   return AVATAR_COLORS[Math.abs(hash)%AVATAR_COLORS.length];
 }
 
@@ -756,41 +930,39 @@ function switchTab(page){
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
   document.getElementById('page-'+page).classList.add('active');
-  if(page==='home') renderHome();
-  if(page==='students') renderStudents();
-  if(page==='lessons') renderCalendar();
-  if(page==='payments') renderPayments();
+  if(page==='home')renderHome();
+  if(page==='students')renderStudents();
+  if(page==='lessons')renderLessons();
+  if(page==='payments')renderPayments();
 }
 
 // ====== 全部渲染 ======
 function renderAll(){
   renderHome();
-  if(document.getElementById('page-students').classList.contains('active')) renderStudents();
-  if(document.getElementById('page-lessons').classList.contains('active')) renderCalendar();
-  if(document.getElementById('page-payments').classList.contains('active')) renderPayments();
+  if(document.getElementById('page-students').classList.contains('active'))renderStudents();
+  if(document.getElementById('page-lessons').classList.contains('active'))renderLessons();
+  if(document.getElementById('page-payments').classList.contains('active'))renderPayments();
 }
 
 // ====== 初始化 ======
 function init(){
   loadData();
-  initCalendar();
+  initWeek();
+  initPanelMonth();
   initPayments();
   renderHome();
 
-  // 底部导航事件
   document.querySelectorAll('.nav-item').forEach(btn=>{
     btn.addEventListener('click',()=>{ switchTab(btn.dataset.page); });
   });
 
-  // 点击遮罩关闭弹窗
   document.querySelectorAll('.modal-overlay').forEach(overlay=>{
     overlay.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('show'); });
   });
 
-  // 选择学生时自动填充科目
   document.getElementById('lStudent').addEventListener('change',function(){
     const s=data.students.find(s=>s.id===this.value);
-    if(s) document.getElementById('lSubject').value=s.subject||'';
+    if(s)document.getElementById('lSubject').value=s.subject||'';
   });
 }
 
