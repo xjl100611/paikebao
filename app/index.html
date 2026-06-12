@@ -1264,8 +1264,8 @@ function promptCopy(url){
 // ====== 更新教师信息 ======
 function editTeacherInfo(){
   localStorage.removeItem('pkbleacher_info');
-  getTeacherInfo();
-  showToast('教师信息已更新 ✓');
+  const info=getTeacherInfo();
+  if(info) showToast('教师信息已更新 ✓');
 }
 
 // ====== 头像颜色 ======

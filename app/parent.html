@@ -543,11 +543,11 @@ function init(){
     return;
   }
   document.getElementById('dataExpired').style.display='none';
-  document.getElementById('teacherName').textContent = teacherData.teacherName+'的课程';
+  document.getElementById('teacherName').textContent = (teacherData.teacherName||'老师')+'的课程';
   const ts = teacherData.generatedAt ? new Date(teacherData.generatedAt) : null;
   const hoursAgo = ts ? Math.floor((Date.now()-ts.getTime())/3600000) : null;
-  const tsStr = ts ? `${ts.getMonth()+1}月${ts.getDate()}日 ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}更新` : '';
-  document.getElementById('teacherSubject').textContent = teacherData.teacherSubject||'';
+  document.getElementById('teacherSubject').textContent = (teacherData.teacherSubject||'')
+    + (ts ? ` · ${ts.getMonth()+1}月${ts.getDate()}日更新` : '');
   document.getElementById('teacherAvatar').textContent = (teacherData.teacherName||'教')[0];
   // 数据超过24小时，显示过期提醒；否则清除
   const w=document.getElementById('staleWarning');
