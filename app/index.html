@@ -1204,10 +1204,10 @@ function getTeacherInfo(){
   try{ info=JSON.parse(localStorage.getItem('pkbleacher_info')||'null'); }catch(e){}
   if(!info){
     let name='', phone='';
-    while(!name.trim()){
-      name=prompt('请设置您的称呼（家长端展示）：','');
+    while(name.trim().length<2){
+      name=prompt('请设置您的称呼（家长端展示，至少2个字）：','');
       if(name===null) return null;
-      if(!name.trim()) alert('称呼不能为空');
+      if(name.trim().length<2) alert('称呼至少需要2个字');
     }
     const subject=prompt('主要教学科目（可跳过）：','');
     if(subject===null) return null;
@@ -1242,7 +1242,7 @@ function shareParentLink(){
   };
 
   const json=JSON.stringify(payload);
-  const b64=btoa(unescape(encodeURIComponent(json)));
+  const b64=btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,(_,p1)=>String.fromCharCode(parseInt(p1,16))));
   const base=location.href.replace(/index\.html$/,'');
   const url=base+'parent.html#'+'data='+b64;
 

@@ -180,6 +180,9 @@ body{
   <div class="sub" id="teacherSubject">加载中…</div>
 </header>
 
+<!-- Stale warning -->
+<div id="staleWarning" style="display:none;margin:0 20px;"></div>
+
 <!-- Tabs -->
 <div class="page">
   <div class="tabs">
@@ -266,7 +269,7 @@ function parseHash(){
     const hash = location.hash.slice(1); // remove #
     if(!hash || !hash.startsWith('data=')) return null;
     const b64 = hash.slice(5);
-    const json = decodeURIComponent(escape(atob(b64)));
+    const json = decodeURIComponent(atob(b64).split('').map(c=>'%'+c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
     return JSON.parse(json);
   }catch(e){
     return null;
@@ -531,6 +534,7 @@ function init(){
   teacherData = parseHash();
   if(!teacherData){
     document.getElementById('dataExpired').style.display='block';
+    document.getElementById('staleWarning').style.display='none';
     document.getElementById('weekStrip').parentElement.style.display='none';
     document.getElementById('slotsContainer').style.display='none';
     document.getElementById('slotDateLabel').style.display='none';
@@ -541,9 +545,18 @@ function init(){
   document.getElementById('dataExpired').style.display='none';
   document.getElementById('teacherName').textContent = teacherData.teacherName+'的课程';
   const ts = teacherData.generatedAt ? new Date(teacherData.generatedAt) : null;
+  const hoursAgo = ts ? Math.floor((Date.now()-ts.getTime())/3600000) : null;
   const tsStr = ts ? `${ts.getMonth()+1}月${ts.getDate()}日 ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}更新` : '';
-  document.getElementById('teacherSubject').textContent = (teacherData.teacherSubject||'') + (tsStr?' · '+tsStr:'');
+  document.getElementById('teacherSubject').textContent = teacherData.teacherSubject||'';
   document.getElementById('teacherAvatar').textContent = (teacherData.teacherName||'教')[0];
+  // 数据超过24小时，显示过期提醒；否则清除
+  const w=document.getElementById('staleWarning');
+  if(hoursAgo && hoursAgo>24){
+    w.style.display='block';
+    w.innerHTML=`<div style="background:#FFFBEB;border:2px solid var(--amber);border-radius:var(--radius);padding:14px;text-align:center;"><div style="font-size:16px;margin-bottom:4px;">⚠️ 此链接已生成 <b>${hoursAgo}</b> 小时</div><div style="font-size:13px;color:var(--gray-600);">时段可能已变动，预约前请与老师确认最新情况</div></div>`;
+  }else{
+    w.style.display='none';
+  }
 
   initWeek();
   renderWeekStrip();
