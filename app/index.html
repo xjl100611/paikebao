@@ -353,6 +353,7 @@ body{
     <div class="section-header"><span class="section-title" style="font-size:13px;color:var(--gray-400);">⚙️ 数据管理</span></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="editTeacherInfo()" style="flex:1;font-size:11px;">👤 教师信息</button>
+	      <button class="btn btn-outline btn-sm" onclick="setupSubjectDefaults()" style="flex:1;font-size:11px;">⚙️ 科目默认</button>
       <button class="btn btn-outline btn-sm" onclick="exportData()" style="flex:1;">📥 导出备份</button>
       <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()" style="flex:1;">📤 导入恢复</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
@@ -1444,6 +1445,30 @@ function promptCopy(url){
 }
 
 // ====== 更新教师信息 ======
+function setupSubjectDefaults(){
+  let defaults={};
+  try{ defaults=JSON.parse(localStorage.getItem("pkbsubject_defaults")||"{}"); }catch(e){}
+  const keys=Object.keys(defaults);
+  const msg="设置科目默认课时费和时长。
+当前已配置："+(keys.length?keys.map(k=>k+" "+defaults[k].fee+"元/"+defaults[k].duration+"分钟").join("，"):"无")+"
+
+请输入科目名（如钢琴），或留空结束：";
+  let subj=prompt(msg,"");
+  while(subj&&subj.trim()){
+    subj=subj.trim();
+    const fee=parseInt(prompt(subj+" 默认课时费(元)：",defaults[subj]?defaults[subj].fee:200));
+    if(!fee||isNaN(fee)) break;
+    const dur=parseInt(prompt(subj+" 默认时长(分钟)：",defaults[subj]?defaults[subj].duration:45));
+    if(!dur||isNaN(dur)) break;
+    defaults[subj]={fee,duration:dur};
+    subj=prompt("已保存："+subj+" "+fee+"元/"+dur+"分钟
+
+继续添加科目（或留空结束）：","");
+  }
+  localStorage.setItem("pkbsubject_defaults",JSON.stringify(defaults));
+  if(Object.keys(defaults).length) showToast("科目默认值已保存");
+}
+
 function editTeacherInfo(){
   const oldInfo=localStorage.getItem('pkbleacher_info');
   localStorage.removeItem('pkbleacher_info');
@@ -1509,6 +1534,21 @@ function init(){
   });
 }
 
+
+  // 科目变化时自动填入默认课时费+时长
+  document.getElementById("lSubject").addEventListener("change",function(){
+    const subj=this.value.trim(); if(!subj) return;
+    try{
+      const defaults=JSON.parse(localStorage.getItem("pkbsubject_defaults")||"{}");
+      if(defaults[subj]){
+        document.getElementById("lFee").value=defaults[subj].fee||200;
+        document.getElementById("lDuration").value=defaults[subj].duration||45;
+      }
+    }catch(e){}
+  });
+  document.getElementById("lSubject").addEventListener("input",function(){
+    this.dispatchEvent(new Event("change"));
+  });
 init();
 </script>
 </body>
