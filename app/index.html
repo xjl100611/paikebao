@@ -625,7 +625,7 @@ function openModal(type,editId){
     document.getElementById('lTime').value=last.time||'10:00';
     document.getElementById('lDuration').value=last.duration||60;
     document.getElementById('lFee').value=last.fee||200;
-    document.getElementById('lPayMethod').value=last.payMethod||'微信';
+    document.getElementById('lPayMethod').value=last.payMethod||document.getElementById('lPayMethod').value;
     document.getElementById('lSubject').value='';
     document.getElementById('lNotes').value='';
     document.getElementById('lStudent').value='';
@@ -645,7 +645,7 @@ function openModal(type,editId){
         document.getElementById('lTime').value=l.time;
         document.getElementById('lDuration').value=l.duration;
         document.getElementById('lFee').value=l.fee;
-        document.getElementById('lPayMethod').value=l.payMethod||'微信';
+        document.getElementById('lPayMethod').value=l.payMethod||document.getElementById('lPayMethod').value;
         document.getElementById('lSubject').value=l.subject||'';
         document.getElementById('lNotes').value=l.notes||'';
         editingLessonId=editId;
@@ -781,7 +781,7 @@ function updateLessonStatus(id,status){
       // 单次收费
       data.payments.push({
         id:genId(), studentId:l.studentId, studentName:l.studentName,
-        amount:l.fee, date:l.date, method:l.payMethod||'微信', type:'single', lessonId:l.id,
+        amount:l.fee, date:l.date, method:l.payMethod||document.getElementById('lPayMethod').value, type:'single', lessonId:l.id,
         notes:`${l.date} ${l.subject||''}课时费`,
         createdAt:new Date().toISOString()
       });
