@@ -49,7 +49,7 @@ body{
 .page.active{display:block;}
 
 /* Stats cards */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
 .stat-card{
   background:var(--gray-50);border-radius:var(--radius);padding:16px 12px;
   text-align:center;cursor:default;
@@ -333,6 +333,7 @@ body{
     <div class="stat-card" onclick="switchTab('lessons')"><div class="stat-num" style="color:var(--green)" id="statToday">0</div><div class="stat-label">今日待上</div></div>
     <div class="stat-card"><div class="stat-num" id="statWeek">0</div><div class="stat-label">本周课次</div></div>
     <div class="stat-card"><div class="stat-num" id="statIncome">¥0</div><div class="stat-label">本月收入</div></div>
+	    <div class="stat-card"><div class="stat-num" style="color:var(--red)" id="statUnpaid">0</div><div class="stat-label">本月未收费</div></div>
   </div>
 
   <div class="quick-actions">
@@ -856,6 +857,10 @@ function renderHome(){
   document.getElementById('statToday').textContent=todayPending.length;
   document.getElementById('statWeek').textContent=weekLessons.length;
   document.getElementById('statIncome').textContent=fmtMoney(monthPayments.reduce((s,p)=>s+p.amount,0));
+  const monthDoneLessons=data.lessons.filter(l=>{const d=new Date(l.date);return l.status==='done'&&d.getFullYear()===y&&d.getMonth()===m;});
+  const paidLessonIds=new Set(data.payments.filter(p=>{const d=new Date(p.date);return(p.type==='single'||p.type==='deduction')&&d.getFullYear()===y&&d.getMonth()===m;}).map(p=>p.lessonId));
+  const unpaidCount=monthDoneLessons.filter(l=>!paidLessonIds.has(l.id)&&l.studentId!=='__open__').length;
+  document.getElementById('statUnpaid').textContent=unpaidCount;
 
   // 待续费/欠费提醒
   const lowStudents=data.students.filter(s=>(s.remainingLessons||0)<=2 && (s.remainingLessons||0)>0);
