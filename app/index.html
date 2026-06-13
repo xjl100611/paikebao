@@ -389,7 +389,10 @@ body{
     </div>
   </div>
   <div style="margin-bottom:16px;">
-    <button class="btn btn-primary btn-sm" onclick="shareParentLink()" style="font-size:12px;background:var(--amber);color:#fff;width:100%;">🔗 生成家长预约链接</button>
+    <div style="display:flex;gap:6px;">
+	    <button class="btn btn-primary btn-sm" onclick="shareParentLink()" style="font-size:12px;background:var(--amber);color:#fff;flex:1;">🔗 家长预约链接</button>
+	    <button class="btn btn-outline btn-sm" onclick="openBatchModal()" style="font-size:12px;flex:1;">📦 批量排课</button>
+	  </div>
   </div>
 
   <!-- 可折叠月历 -->
@@ -517,7 +520,37 @@ body{
   </div>
 </div>
 
-<!-- ====== 待补课列表 Modal ====== -->
+<!-- ====== Modal: 批量排课 ====== -->
+	<div class="modal-overlay" id="modal-batchLesson">
+	  <div class="modal">
+	    <div class="modal-title">📦 批量排课</div>
+	    <div class="form-group"><label class="form-label">学生 *</label>
+	      <select class="form-select" id="blStudent"><option value="">请选择学生</option></select>
+	    </div>
+	    <div class="form-group"><label class="form-label">每周重复日</label>
+	      <div style="display:flex;gap:4px;flex-wrap:wrap;" id="blWeekdays"></div>
+	    </div>
+	    <div class="form-row">
+	      <div class="form-group"><label class="form-label">时间 *</label><input class="form-input" type="time" id="blTime" value="14:00"></div>
+	      <div class="form-group"><label class="form-label">时长(分钟)</label><input class="form-input" type="number" id="blDuration" value="45" min="15" step="15"></div>
+	    </div>
+	    <div class="form-row">
+	      <div class="form-group"><label class="form-label">开始日期</label><input class="form-input" type="date" id="blStart"></div>
+	      <div class="form-group"><label class="form-label">结束日期</label><input class="form-input" type="date" id="blEnd"></div>
+	    </div>
+	    <div class="form-row">
+	      <div class="form-group"><label class="form-label">课时费(¥)</label><input class="form-input" type="number" id="blFee" value="200" min="0"></div>
+	      <div class="form-group"><label class="form-label">科目</label><input class="form-input" id="blSubject" placeholder="可选"></div>
+	    </div>
+	    <div id="blPreview" style="text-align:center;font-size:14px;color:var(--teal);font-weight:600;margin-bottom:12px;"></div>
+	    <div style="display:flex;gap:10px;">
+	      <button class="btn btn-outline btn-block" onclick="closeModal('batchLesson')">取消</button>
+	      <button class="btn btn-primary btn-block" onclick="saveBatchLessons()">生成课程</button>
+	    </div>
+	  </div>
+	</div>
+
+	<!-- ====== 待补课列表 Modal ====== -->
 	<div class="modal-overlay" id="modal-makeup">
 	  <div class="modal">
 	    <div class="modal-title">📝 待补课列表</div>
@@ -883,6 +916,62 @@ function deletePayment(id){
   });
 }
 
+
+
+// ====== 批量排课 ======
+function openBatchModal(){
+  populateStudentSelect("blStudent");
+  const wds=["日","一","二","三","四","五","六"];
+  document.getElementById("blWeekdays").innerHTML=wds.map((w,i)=>`<label style="display:flex;align-items:center;gap:4px;padding:6px 8px;border:1px solid var(--gray-300);border-radius:6px;cursor:pointer;font-size:12px;"><input type="checkbox" value="${i}" onchange="previewBatch()" ${i>=1&&i<=5?"checked":""}> 周${w}</label>`).join("");
+  document.getElementById("blTime").value="14:00";
+  document.getElementById("blDuration").value="45";
+  document.getElementById("blFee").value="200";
+  document.getElementById("blSubject").value="";
+  const now=new Date();
+  document.getElementById("blStart").value=fmtDate(now);
+  const end=new Date(now);end.setMonth(end.getMonth()+2);
+  document.getElementById("blEnd").value=fmtDate(end);
+  document.getElementById("blPreview").textContent="";
+  document.getElementById("modal-batchLesson").classList.add("show");
+}
+function previewBatch(){
+  const start=document.getElementById("blStart").value;
+  const end=document.getElementById("blEnd").value;
+  if(!start||!end){document.getElementById("blPreview").textContent="";return;}
+  const checked=[...document.querySelectorAll("#blWeekdays input:checked")].map(c=>parseInt(c.value));
+  if(checked.length===0){document.getElementById("blPreview").textContent="请至少选一天";return;}
+  let count=0;const d=new Date(start+"T00:00:00");const ed=new Date(end+"T00:00:00");
+  while(d<=ed){if(checked.includes(d.getDay()))count++;d.setDate(d.getDate()+1);}
+  document.getElementById("blPreview").textContent=`预计生成 ${count} 节课程`;
+}
+function saveBatchLessons(){
+  const studentId=document.getElementById("blStudent").value;
+  if(!studentId){showToast("请选择学生");return;}
+  const time=document.getElementById("blTime").value;
+  const start=document.getElementById("blStart").value;
+  const end=document.getElementById("blEnd").value;
+  if(!time||!start||!end){showToast("请填写时间和日期范围");return;}
+  const checked=[...document.querySelectorAll("#blWeekdays input:checked")].map(c=>parseInt(c.value));
+  if(checked.length===0){showToast("请至少选择一天");return;}
+  const duration=parseInt(document.getElementById("blDuration").value)||45;
+  const fee=parseInt(document.getElementById("blFee").value)||0;
+  const subject=document.getElementById("blSubject").value.trim();
+  const s=data.students.find(s=>s.id===studentId);
+  let count=0;const d=new Date(start+"T00:00:00");const ed=new Date(end+"T00:00:00");
+  while(d<=ed){
+    if(checked.includes(d.getDay())){
+      const ds=fmtDate(d);
+      const conflict=data.lessons.find(l=>l.date===ds&&l.time===time&&l.status!=="cancelled"&&l.status!=="leave");
+      if(!conflict){
+        data.lessons.push({id:genId(),studentId,studentName:s?s.name:"未知",date:ds,time,duration,fee,subject:subject||(s?s.subject:""),payMethod:document.getElementById("lPayMethod").value,notes:"批量排课",status:"pending"});
+        count++;
+      }
+    }
+    d.setDate(d.getDate()+1);
+  }
+  saveData();closeModal("batchLesson");renderAll();
+  showToast(`已生成 ${count} 节课程 ✓`);
+}
 
 // ====== 补课管理 ======
 function showMakeupList(){
