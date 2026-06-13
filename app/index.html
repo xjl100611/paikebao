@@ -791,7 +791,8 @@ function updateLessonStatus(id,status){
     }
   }
 
-  l.status=status; saveData(); renderAll();
+  if(status==='done'){ const note=prompt('课后小结（可选）\n记录本节课内容、孩子表现、回家作业等：',''); if(note!==null){ l.postNotes=note.trim(); } }
+	  l.status=status; saveData(); renderAll();
   showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':status==='leave'?'已请假 📝':'状态已更新');
 }
 function deleteLesson(id){
@@ -1134,7 +1135,7 @@ function renderDayLessons(){
             <button class="act-leave" onclick="updateLessonStatus('${l.id}','leave')" style="background:#FEF3C7;color:var(--amber-dark);border:1px solid var(--amber);">📝 请假</button>
           <button class="act-cancel" onclick="updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
         </div>`:l.status==='done'?`
-        <div class="cc-done-label">✅ 已完成 · 已自动入账</div>`:l.status==='leave'?`
+        <div class="cc-done-label">✅ 已完成 · 已自动入账</div>${l.postNotes?`<div style="font-size:12px;color:var(--gray-600);margin-top:4px;padding:6px 10px;background:var(--gray-50);border-radius:6px;">📝 ${l.postNotes}</div>`:''}`:l.status==='leave'?`
 	        <div class="cc-done-label" style="color:var(--amber-dark);">📝 已请假</div>
 	        <div class="cc-actions"><button class="act-restore" onclick="updateLessonStatus('${l.id}','pending')">↩ 恢复待上</button></div>`:`
         <div style="margin-bottom:8px;"></div>
