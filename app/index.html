@@ -99,6 +99,7 @@ body{
 .badge-success{background:var(--green-bg);color:#065F46;}
 .badge-warning{background:#FEF3C7;color:#92400E;}
 .badge-danger{background:var(--red-bg);color:#991B1B;}
+	.badge-leave{background:#FEF3C7;color:#92400E;}
 .badge-info{background:var(--blue-light);color:#1E40AF;}
 
 /* Empty state */
@@ -216,6 +217,7 @@ body{
 .course-card .cc-del{font-size:11px;color:var(--gray-400);border:none;background:none;cursor:pointer;padding:4px 0;margin-top:6px;}
 .course-card.done{background:var(--green-light);opacity:.85;}
 .course-card.cancelled{background:var(--gray-50);opacity:.6;}
+	.course-card.leave{background:#FFFBEB;border-left:3px solid var(--amber);}
 
 /* ====== Month panel (可折叠月历) ====== */
 .month-toggle-btn{
@@ -722,7 +724,7 @@ function saveLesson(){
   const newStart=timeToMin(time), newEnd=newStart+duration;
   // 冲突检测（编辑时排除自身）
   const conflict=data.lessons.find(l=>{
-    if(l.date!==date || l.status==='cancelled' || (editingLessonId && l.id===editingLessonId)) return false;
+    if(l.date!==date || l.status==='cancelled'||l.status==='leave' || (editingLessonId && l.id===editingLessonId)) return false;
     const ls=timeToMin(l.time), le=ls+l.duration;
     return newStart<le && newEnd>ls;
   });
@@ -754,7 +756,7 @@ function saveLesson(){
 function updateLessonStatus(id,status){
   const l=data.lessons.find(l=>l.id===id);
   if(!l)return;
-  if(l.studentId==='__open__' && status==='done'){ showToast('⚠️ 请先编辑开放时段，添加学生后再标记完成'); return; }
+  if(l.studentId==='__open__' && (status==='done'||status==='leave')){ showToast('⚠️ 请先编辑开放时段，添加学生后再操作'); return; }
   const s=data.students.find(s=>s.id===l.studentId);
 
   // 撤销之前的消课效果（done→cancelled 或 done→pending）
@@ -790,7 +792,7 @@ function updateLessonStatus(id,status){
   }
 
   l.status=status; saveData(); renderAll();
-  showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':'状态已更新');
+  showToast(status==='done'?'已标记完成 ✓':status==='cancelled'?'已取消':status==='leave'?'已请假 📝':'状态已更新');
 }
 function deleteLesson(id){
   showConfirm('删除课程','确定删除这条课程记录吗？',()=>{
@@ -887,7 +889,7 @@ function renderHome(){
     <div class="home-lesson-item" onclick="switchTab('lessons',td)" style="${isOpen?'border-left:3px dashed var(--teal);':''}">
       <div class="avatar" style="background:${color}">${isOpen?'🔓':l.studentName[0]}</div>
       <div class="info"><div class="name">${isOpen?'🔓 开放预约':l.studentName} ${l.subject?'· '+l.subject:''}</div><div class="meta">${l.time}-${endTime} · ${l.duration}分钟 · ${fmtMoney(l.fee)}</div></div>
-      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':isOpen?'待约':'待上'}</span></div>
+      <div class="right"><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':l.status==='leave'?'badge-leave':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':l.status==='leave'?'请假':isOpen?'待约':'待上'}</span></div>
     </div>`;
   }).join('');
 }
@@ -963,7 +965,7 @@ function showStudentDetail(id){
     </div>
     <div class="detail-cards">
       <div class="detail-card"><div class="dc-header"><span class="dc-title">📅 近期课程</span></div>
-        ${lessons.length===0?'<div style="font-size:13px;color:var(--gray-400);">暂无课程记录</div>':lessons.slice(0,5).map(l=>`<div style="font-size:13px;padding:4px 0;display:flex;justify-content:space-between;"><span>${l.date} ${l.time} ${l.subject||''} · ${l.duration}分钟</span><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>`).join('')}
+        ${lessons.length===0?'<div style="font-size:13px;color:var(--gray-400);">暂无课程记录</div>':lessons.slice(0,5).map(l=>`<div style="font-size:13px;padding:4px 0;display:flex;justify-content:space-between;"><span>${l.date} ${l.time} ${l.subject||''} · ${l.duration}分钟</span><span class="badge ${l.status==='done'?'badge-success':l.status==='cancelled'?'badge-danger':l.status==='leave'?'badge-leave':'badge-warning'}">${l.status==='done'?'已上':l.status==='cancelled'?'取消':'待上'}</span></div>`).join('')}
       </div>
       <div class="detail-card"><div class="dc-header"><span class="dc-title">💰 收费记录</span></div>
         ${payments.length===0?'<div style="font-size:13px;color:var(--gray-400);">暂无收费记录</div>':payments.slice(0,5).map(p=>`<div style="font-size:13px;padding:4px 0;display:flex;justify-content:space-between;"><span>${p.date} · ${p.method}</span><span style="font-weight:600;">${fmtMoney(p.amount)}</span></div>`).join('')}
@@ -1104,7 +1106,7 @@ function renderDayLessons(){
     const isOpen = l.studentId==='__open__';
     const color = isOpen?'var(--teal)':avatarColor(l.studentName);
     const endTime = calcEndTime(l.time, l.duration);
-    const cls = l.status==='done'?'done':l.status==='cancelled'?'cancelled':'';
+    const cls = l.status==='done'?'done':l.status==='cancelled'?'cancelled':l.status==='leave'?'leave':'';
     return `
     <div class="course-card ${cls}" style="${isOpen?'border:2px dashed var(--teal);background:var(--teal-bg);':''}">
       <div class="cc-bar" style="background:${color}"></div>
@@ -1115,6 +1117,7 @@ function renderDayLessons(){
             <span class="cc-period">- ${endTime}</span>
             ${l.status==='done'?'<span style="font-size:12px;color:var(--green);margin-left:4px;">✓</span>':''}
             ${l.status==='cancelled'?'<span style="font-size:12px;color:var(--gray-400);margin-left:4px;">✕</span>':''}
+	            ${l.status==='leave'?'<span style="font-size:12px;color:var(--amber-dark);margin-left:4px;">📝</span>':''}
           </div>
           <span class="cc-student-name" style="${isOpen?'color:var(--teal);':''}">${isOpen?'🔓 开放预约':l.studentName}</span>
           <button onclick="event.stopPropagation();openModal('lesson','${l.id}')" style="font-size:13px;border:none;background:none;cursor:pointer;color:var(--gray-400);padding:2px 4px;" title="编辑">✏️</button>
@@ -1127,10 +1130,13 @@ function renderDayLessons(){
         ${isOpen?`
         <div style="font-size:12px;color:var(--teal-dark);margin-top:4px;">💡 家长扫码后可预约此时段 · 家长预约后不会自动通知你，请让家长发微信截图确认 · 确认后在课程上点 ✏️ 编辑添加学生</div>`:l.status==='pending'?`
         <div class="cc-actions">
-          <button class="act-done" onclick="updateLessonStatus('${l.id}','done')">✓ 标记完成</button>
+          <button class="act-done" onclick="updateLessonStatus('${l.id}','done')">✓ 完成</button>
+            <button class="act-leave" onclick="updateLessonStatus('${l.id}','leave')" style="background:#FEF3C7;color:var(--amber-dark);border:1px solid var(--amber);">📝 请假</button>
           <button class="act-cancel" onclick="updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
         </div>`:l.status==='done'?`
-        <div class="cc-done-label">✅ 已完成 · 已自动入账</div>`:`
+        <div class="cc-done-label">✅ 已完成 · 已自动入账</div>`:l.status==='leave'?`
+	        <div class="cc-done-label" style="color:var(--amber-dark);">📝 已请假</div>
+	        <div class="cc-actions"><button class="act-restore" onclick="updateLessonStatus('${l.id}','pending')">↩ 恢复待上</button></div>`:`
         <div style="margin-bottom:8px;"></div>
         <div class="cc-actions"><button class="act-restore" onclick="updateLessonStatus('${l.id}','pending')">↩ 恢复待上</button></div>`}
         <button class="cc-del" onclick="deleteLesson('${l.id}')">删除</button>
