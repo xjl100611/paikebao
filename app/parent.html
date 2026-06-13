@@ -246,13 +246,13 @@ body{
   <div class="modal">
     <div class="confirm-card">
       <div class="cc-icon">✅</div>
-      <div class="cc-title">预约成功！</div>
+      <div class="cc-title">预约已提交！</div>
       <div class="cc-meta" id="successMsg"></div>
     </div>
     <p style="font-size:13px;color:var(--gray-500);text-align:center;margin-bottom:16px;">
-      请截图保存，或联系老师确认上课时间
+      请截图发给老师微信确认上课时间。老师不会自动收到通知。
     </p>
-    <button class="btn btn-primary btn-block" onclick="closeSuccessModal()">知道了</button>
+    <button class="btn btn-primary btn-block" onclick="closeSuccessModal()">知道了，我去联系老师</button>
   </div>
 </div>
 
@@ -360,7 +360,8 @@ function shiftWeek(n){
   const d=new Date(weekStart+'T00:00:00');
   d.setDate(d.getDate()+n);
   weekStart=fmtDate(d);
-  selectedDate=weekStart;
+  const sd=new Date(selectedDate+'T00:00:00');sd.setDate(sd.getDate()+n);
+selectedDate=fmtDate(sd);
   renderWeekStrip();
   renderSlots();
 }

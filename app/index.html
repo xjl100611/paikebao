@@ -863,7 +863,7 @@ function renderHome(){
   const alertContainer=document.getElementById('homeAlerts');
   if(alertContainer) alertContainer.innerHTML=alertHtml;
 
-  const todayLessons=data.lessons.filter(l=>l.date===td).sort((a,b)=>a.time.localeCompare(b.time));
+  const todayLessons=data.lessons.filter(l=>l.date===td&&l.status!=='cancelled').sort((a,b)=>a.time.localeCompare(b.time));
   const container=document.getElementById('todayLessons');
   if(todayLessons.length===0){
     container.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><p>今日暂无课程</p></div>`;
@@ -1115,7 +1115,7 @@ function renderDayLessons(){
           <span class="cc-tag">💰 ${fmtMoney(l.fee)}</span>
         </div>
         ${isOpen?`
-        <div style="font-size:12px;color:var(--teal-dark);margin-top:4px;">💡 家长扫码后可预约此时段 · 预约后请编辑添加学生</div>`:l.status==='pending'?`
+        <div style="font-size:12px;color:var(--teal-dark);margin-top:4px;">💡 家长扫码后可预约此时段 · 家长预约后不会自动通知你，请让家长发微信截图确认 · 确认后在课程上点 ✏️ 编辑添加学生</div>`:l.status==='pending'?`
         <div class="cc-actions">
           <button class="act-done" onclick="updateLessonStatus('${l.id}','done')">✓ 标记完成</button>
           <button class="act-cancel" onclick="updateLessonStatus('${l.id}','cancelled')">✕ 取消</button>
@@ -1263,9 +1263,11 @@ function promptCopy(url){
 
 // ====== 更新教师信息 ======
 function editTeacherInfo(){
+  const oldInfo=localStorage.getItem('pkbleacher_info');
   localStorage.removeItem('pkbleacher_info');
   const info=getTeacherInfo();
-  if(info) showToast('教师信息已更新 ✓');
+  if(info){ showToast('教师信息已更新 ✓'); }
+  else if(oldInfo){ localStorage.setItem('pkbleacher_info', oldInfo); }
 }
 
 // ====== 头像颜色 ======
