@@ -677,8 +677,10 @@ function populateStudentSelect(selectId){
 function saveStudent(){
   const name=document.getElementById('sName').value.trim();
   if(!name){ showToast('请输入学生姓名'); return; }
+  const phone=document.getElementById('sPhone').value.trim();
+  if(phone&&!/^1\d{10}$/.test(phone)){ showToast('请输入正确的11位手机号'); return; }
   const sData={
-    name, phone:document.getElementById('sPhone').value.trim(),
+    name, phone,
     subject:document.getElementById('sSubject').value.trim(),
     debt:parseFloat(document.getElementById('sDebt').value)||0,
     notes:document.getElementById('sNotes').value.trim()
