@@ -517,7 +517,16 @@ body{
   </div>
 </div>
 
-<!-- ====== Confirm dialog ====== -->
+<!-- ====== 待补课列表 Modal ====== -->
+	<div class="modal-overlay" id="modal-makeup">
+	  <div class="modal">
+	    <div class="modal-title">📝 待补课列表</div>
+	    <div id="makeupList"></div>
+	    <button class="btn btn-outline btn-block" onclick="closeModal('makeup')" style="margin-top:12px;">关闭</button>
+	  </div>
+	</div>
+
+	<!-- ====== Confirm dialog ====== -->
 <div class="confirm-overlay" id="confirmDialog">
   <div class="confirm-dialog">
     <div class="cd-title" id="cdTitle">确认删除</div>
@@ -775,7 +784,9 @@ function saveLesson(){
     if(l){ Object.assign(l,lessonData); }
     editingLessonId=null;
   }else{
-    data.lessons.push({id:genId(),...lessonData,status:'pending'});
+    const newLesson={id:genId(),...lessonData,status:'pending'};
+	    if(window._makeupFor){ newLesson.makeupFor=window._makeupFor; window._makeupFor=null; }
+	    data.lessons.push(newLesson);
   }
   localStorage.setItem('pkblastLesson',JSON.stringify({time,duration,fee:lessonData.fee,payMethod:lessonData.payMethod}));
   saveData(); closeModal('lesson'); renderAll(); showToast(editingLessonId?'课程已更新 ✓':'课程安排成功 ✓');
@@ -872,6 +883,38 @@ function deletePayment(id){
   });
 }
 
+
+// ====== 补课管理 ======
+function showMakeupList(){
+  const leaveLessons=data.lessons.filter(l=>l.status==='leave'&&!data.lessons.some(l2=>l2.makeupFor===l.id));
+  const container=document.getElementById('makeupList');
+  if(leaveLessons.length===0){
+    container.innerHTML='<div class="empty"><div class="empty-icon">✅</div><p>暂无待补课</p></div>';
+  }else{
+    container.innerHTML=leaveLessons.map(l=>{
+      const s=data.students.find(s=>s.id===l.studentId);
+      return`<div class="list-item" style="cursor:default;"><div class="avatar" style="background:${avatarColor(l.studentName)}">${l.studentName[0]}</div><div class="info"><div class="name">${l.studentName}</div><div class="meta">缺课：${l.date} ${dayOfWeek(l.date)} ${l.time} · 剩余${s?s.remainingLessons||0:0}节</div></div><button class="btn btn-primary btn-sm" onclick="scheduleMakeup('${l.id}')">安排补课</button></div>`;
+    }).join('');
+  }
+  document.getElementById('modal-makeup').classList.add('show');
+}
+function scheduleMakeup(leaveId){
+  closeModal('makeup');
+  const l=data.lessons.find(l=>l.id===leaveId); if(!l)return;
+  switchTab('lessons');
+  setTimeout(()=>{
+    openModal('lesson');
+    if(l.studentId!=='__open__'){
+      document.getElementById('lStudent').value=l.studentId;
+      const s=data.students.find(s=>s.id===l.studentId);
+      if(s) document.getElementById('lSubject').value=s.subject||'';
+    }
+    document.getElementById('lDate').value=today();
+    document.getElementById('lNotes').value='补课：'+l.date+' '+(l.subject||'');
+    window._makeupFor=leaveId;
+  },300);
+}
+
 // ====== 渲染首页 ======
 function renderHome(){
   const td=today();
@@ -899,7 +942,9 @@ function renderHome(){
   const lowStudents=data.students.filter(s=>(s.remainingLessons||0)<=2 && (s.remainingLessons||0)>0);
   const zeroStudents=data.students.filter(s=>s.remainingLessons===0 && data.payments.some(p=>p.studentId===s.id && p.type==='package'));
   const debtStudents=data.students.filter(s=>(s.debt||0)>0);
-  let alertHtml='';
+  const leaveLessons=data.lessons.filter(l=>l.status==='leave'&&!data.lessons.some(l2=>l2.makeupFor===l.id));
+	  let alertHtml='';
+	  if(leaveLessons.length>0) alertHtml+=`<div style="background:#FFFBEB;border:2px solid var(--amber);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--amber-dark);cursor:pointer;" onclick="showMakeupList()">📝 <b>待补课 ${leaveLessons.length} 人</b>：${leaveLessons.map(l=>l.studentName).filter((v,i,a)=>a.indexOf(v)===i).join('、')} → 点击安排补课</div>`;
   if(zeroStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">⚠️ <b>${zeroStudents.map(s=>s.name).join('、')}</b> 课时已用完，需续费</div>`;
   if(debtStudents.length>0) alertHtml+=`<div style="background:var(--red-light);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--red);display:flex;align-items:center;gap:8px;">💸 欠费提醒：<b>${debtStudents.map(s=>`${s.name}(¥${s.debt})`).join('、')}</b></div>`;
   if(lowStudents.length>0) alertHtml+=`<div style="background:#FFFBEB;border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;font-size:13px;color:var(--amber-dark);display:flex;align-items:center;gap:8px;">📦 <b>${lowStudents.map(s=>`${s.name}(${s.remainingLessons}节)`).join('、')}</b> 课时即将用完</div>`;
