@@ -784,6 +784,7 @@ function copyStudentBill(id){
 }
 
 // ====== 保存课程 ======
+function shiftDate(ds,days){ const d=new Date(ds+"T00:00:00"); d.setDate(d.getDate()+days); return fmtDate(d); }
 function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function saveLesson(){
   const isOpenSlot=document.getElementById('lOpenSlot').checked;
@@ -797,8 +798,8 @@ function saveLesson(){
   const newStart=timeToMin(time), newEnd=newStart+duration;
   // 冲突检测（编辑时排除自身）
   const conflict=data.lessons.find(l=>{
-    if(l.date!==date || l.status==='cancelled'||l.status==='leave' || (editingLessonId && l.id===editingLessonId)) return false;
-    const ls=timeToMin(l.time), le=ls+l.duration;
+    if((l.date!==date&&l.date!==shiftDate(date,1)) || l.status==='cancelled'||l.status==='leave' || (editingLessonId && l.id===editingLessonId)) return false;
+	    let ls=timeToMin(l.time); if(l.date===shiftDate(date,1)) ls+=24*60; const le=ls+l.duration;
     return newStart<le && newEnd>ls;
   });
   if(conflict){
