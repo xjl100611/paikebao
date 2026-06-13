@@ -710,6 +710,36 @@ function deleteStudent(id){
   });
 }
 
+// ====== 复制学生课时对账单（发给家长） ======
+function copyStudentBill(id){
+  const s=data.students.find(s=>s.id===id); if(!s)return;
+  const lessons=data.lessons.filter(l=>l.studentId===id&&l.status==='done').sort((a,b)=>b.date.localeCompare(a.date));
+  const payments=data.payments.filter(p=>p.studentId===id&&p.type!=='deduction').sort((a,b)=>b.date.localeCompare(a.date));
+  const remain=s.remainingLessons||0;
+  const debt=s.debt||0;
+  let msg=`【排课宝 课时对账单】\n`;
+  msg+=`学生：${s.name}${s.subject?' · '+s.subject:''}\n`;
+  msg+=`━━━━━━━━━━━━━━\n`;
+  msg+=`📦 剩余课时：${remain} 节${debt>0?' | ⚠️ 欠费 ¥'+debt:''}\n`;
+  msg+=`已上课次：${lessons.length} 节 | 总收费：${fmtMoney(payments.reduce((sum,p)=>sum+p.amount,0))}\n`;
+  if(lessons.length>0){
+    msg+=`\n📅 最近上课记录：\n`;
+    lessons.slice(0,8).forEach(l=>{
+      msg+=`  ${l.date} ${l.time} ${l.subject||''} · ${l.duration}分钟${l.postNotes?'\n    📝 '+l.postNotes:''}\n`;
+    });
+    if(lessons.length>8) msg+=`  ...共${lessons.length}节\n`;
+  }
+  msg+=`\n生成时间：${today()}\n`;
+  msg+=`━━━━━━━━━━━━━━\n`;
+  if(debt>0) msg+=`⚠️ 请及时缴纳欠费 ¥${debt}\n`;
+  if(remain<=2&&remain>0) msg+=`⚠️ 剩余课时不足，请考虑续费\n`;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(msg).then(()=>showToast('✅ 对账单已复制，粘贴到微信发给家长'));
+  }else{
+    prompt('复制以下对账单发给家长：',msg); showToast('✅ 已复制');
+  }
+}
+
 // ====== 保存课程 ======
 function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
 function saveLesson(){
@@ -945,7 +975,8 @@ function showStudentDetail(id){
       <div><div style="font-size:18px;font-weight:700;">${s.name}</div><div style="font-size:13px;color:var(--gray-500);">${s.subject||'未设科目'} · ${s.phone||'无手机号'}</div></div>
       <span style="flex:1"></span>
       <button class="btn btn-outline btn-sm" onclick="openModal('student','${s.id}')">✏️</button>
-      <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
+      <button class="btn btn-outline btn-sm" onclick="copyStudentBill('${s.id}')" style="color:var(--teal);">📋 对账单</button>
+	      <button class="btn btn-outline btn-sm" onclick="deleteStudent('${s.id}')" style="color:var(--red)">删除</button>
     </div>
     ${s.notes?`<div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;">📝 ${s.notes}</div>`:''}
     ${(s.debt||0)>0?`<div style="background:var(--red-light);border:1px solid #FECACA;border-radius:var(--radius);padding:14px;margin-bottom:12px;text-align:center;">
